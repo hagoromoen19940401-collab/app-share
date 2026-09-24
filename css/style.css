@@ -732,20 +732,138 @@ svg {
 .comment__author { font-size: 14px; font-weight: 700; }
 .comment__time { font-size: 12px; color: var(--text-weak); }
 
-.comment__status {
-  margin-left: auto;
-  padding: 1px 8px;
+.comment__edited {
+  padding: 1px 7px;
   border-radius: 999px;
   border: 1px solid var(--line-strong);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-weak);
   background: var(--surface-sub);
+  font-size: 11px;
+  color: var(--text-weak);
   white-space: nowrap;
 }
 
-.comment__status--checking { border-color: var(--warn-line); background: var(--warn-bg); color: var(--warn-text); }
-.comment__status--done { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-dark); }
+/* 編集 / 削除 / 確認 のボタン */
+.comment__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-top: 7px;
+}
+
+.comment__action {
+  padding: 4px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.comment__action:hover { background: var(--surface-sub); color: var(--text); }
+
+.comment__action--primary {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.comment__action--primary:hover { background: #dbe9e6; }
+
+.comment__action--danger {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.comment__action:disabled { opacity: .6; cursor: default; }
+
+.comment__checked {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+}
+
+.comment__confirm-text {
+  font-size: 12.5px;
+  color: var(--warn-text);
+}
+
+/* 確認済みの人数と氏名 */
+.comment__reads {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-weak);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.comment__reads:hover { background: rgba(31, 37, 41, 0.05); color: var(--text-sub); }
+.comment__reads.is-open { background: rgba(31, 37, 41, 0.06); color: var(--text-sub); }
+
+.comment__readers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sub);
+}
+
+.comment__reader {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.comment__readers-note { font-size: 12px; color: var(--text-weak); }
+
+.comment__error {
+  margin-top: 7px;
+  font-size: 12.5px;
+  color: var(--warn-text);
+}
+
+/* 編集中の入力欄 */
+.comment__editor { margin-top: 5px; }
+
+.comment__editor-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 62px;
+  max-height: 220px;
+  padding: 9px 11px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  font-size: 14.5px;
+  line-height: 1.6;
+  resize: vertical;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.comment__editor-input:focus { outline: none; }
 
 .comment__text {
   margin-top: 3px;
@@ -797,7 +915,9 @@ svg {
 }
 
 .composer__input {
-  flex: 1;
+  flex: 1 1 auto;
+  width: 100%;              /* textarea既定の cols 幅ではなく、枠いっぱいに広げる */
+  min-width: 0;             /* flexの既定 min-width:auto で幅が決まらないようにする */
   min-height: 24px;
   max-height: 140px;
   padding: 2px 0;
@@ -806,6 +926,10 @@ svg {
   resize: none;
   font-size: 14.5px;
   line-height: 1.6;
+  white-space: pre-wrap;    /* 右端で自動的に折り返す。入力した改行はそのまま残す */
+  overflow-wrap: anywhere;  /* 空白のない英数字が続く場合も折り返す */
+  word-break: normal;
+  overflow-x: hidden;       /* 横スクロールさせない＝必ず折り返す */
   overflow-y: auto;
 }
 
