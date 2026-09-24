@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="description" content="施設内で作成したWebアプリを共有し、アプリごとに意見や不具合を書き込むためのシステムです。">
+  <meta name="theme-color" content="#2f6f68">
+  <title>アプリ共有システム</title>
+  <!-- パスはすべて相対指定。GitHub Pagesのサブフォルダ公開でもそのまま動く -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ===== ヘッダー ===== -->
+  <header class="header">
+    <button class="icon-button header__nav-toggle" id="navToggle" type="button" aria-label="アプリ一覧を開く" aria-expanded="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+
+    <div class="header__brand">
+      <span class="header__mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="13" rx="2.5"/><path d="M9 20.5h6"/><path d="M8 9.5h8M8 13h5"/></svg>
+      </span>
+      <span class="header__title">アプリ共有</span>
+      <span class="header__tag">試作版</span>
+    </div>
+
+    <div class="header__user">
+      <label class="header__user-label" for="userNameInput">表示名</label>
+      <input
+        class="header__user-input"
+        id="userNameInput"
+        type="text"
+        maxlength="20"
+        autocomplete="off"
+        placeholder="名前を入力">
+    </div>
+  </header>
+
+  <!-- ===== 本体 ===== -->
+  <div class="layout">
+
+    <!-- 左：アプリ一覧 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__head">
+        <span class="sidebar__head-label">アプリ一覧</span>
+        <span class="sidebar__head-count" id="appCount"></span>
+      </div>
+      <nav class="sidebar__nav" id="appList" aria-label="アプリ一覧"></nav>
+      <div class="sidebar__foot">
+        <p class="sidebar__note">現在は試作版です。コメントはこの端末内にのみ保存されます。</p>
+      </div>
+    </aside>
+
+    <div class="scrim" id="scrim" hidden></div>
+
+    <!-- 右：アプリ情報＋コメント -->
+    <main class="main" id="main">
+
+      <!-- アプリ名＋タブ（概要 / ファイル / チャット） -->
+      <div class="workbar" id="workbar"></div>
+
+      <div class="main__scroll" id="mainScroll">
+        <section class="tabpanel" id="panelOverview" aria-live="polite">
+          <div class="detail" id="appDetail"></div>
+        </section>
+
+        <section class="tabpanel" id="panelFiles" hidden>
+          <div class="panel" id="appFiles"></div>
+        </section>
+
+        <section class="tabpanel" id="panelChat" hidden>
+          <section class="comments" id="commentSection"></section>
+        </section>
+      </div>
+
+      <div class="composer" id="composer" hidden></div>
+    </main>
+
+  </div>
+
+  <!-- ===== 通知 ===== -->
+  <div class="toast-area" id="toastArea" role="status" aria-live="polite"></div>
+
+  <script src="data/apps.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/apps.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

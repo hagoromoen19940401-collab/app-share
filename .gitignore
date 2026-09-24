@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# エディタ
+.vscode/
+.idea/
+*.swp
+
+# ログ・一時ファイル
+*.log
+tmp/
+.cache/
+
+# 将来Supabaseを使うときの設定ファイル（キーをGitHubに上げないため）
+.env
+.env.*
+!.env.example
+js/config.local.js
