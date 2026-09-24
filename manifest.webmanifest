@@ -1,0 +1,33 @@
+{
+  "name": "あぷりんく",
+  "short_name": "あぷりんく",
+  "description": "施設内で作成したWebアプリを共有し、アプリごとに意見や不具合をチャット形式で書き込むためのシステムです。",
+  "lang": "ja",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#2f6f68",
+  "background_color": "#f5f6f8",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/apple-touch-icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

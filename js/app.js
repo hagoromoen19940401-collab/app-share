@@ -113,7 +113,7 @@
     setSidebar(false);
 
     try { global.localStorage.setItem(SELECTED_KEY, appId); } catch (e) { /* 保存できなくても動作する */ }
-    document.title = app.name + ' / アプリ共有システム';
+    document.title = app.name + ' / あぷりんく';
   }
 
   function restoreSelectedApp() {
