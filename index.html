@@ -27,16 +27,24 @@
       <span class="header__tag">試作版</span>
     </div>
 
-    <div class="header__user">
-      <label class="header__user-label" for="userNameInput">表示名</label>
-      <input
-        class="header__user-input"
-        id="userNameInput"
-        type="text"
-        maxlength="20"
-        autocomplete="off"
-        placeholder="名前を入力">
+    <div class="header__session" id="headerSession" hidden>
+      <span class="header__session-text">ログイン中：<b id="sessionName"></b></span>
+      <button class="button button--quiet header__logout" id="logoutButton" type="button">ログアウト</button>
     </div>
+
+    <button class="button header__login" id="loginButton" type="button">
+      <span class="button__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M10 4.5H5.5v15H10"/><path d="M14 8l4 4-4 4"/><path d="M18 12H9"/></svg>
+      </span>
+      <span class="header__login-label">ログイン</span>
+    </button>
+
+    <button class="button button--ghost header__settings" id="settingsButton" type="button">
+      <span class="button__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z"/><path d="M19.5 12a7.5 7.5 0 00-.1-1.2l2-1.5-2-3.4-2.3 1a7.5 7.5 0 00-2-1.2L14.7 3H9.3l-.4 2.7a7.5 7.5 0 00-2 1.2l-2.3-1-2 3.4 2 1.5a7.5 7.5 0 000 2.4l-2 1.5 2 3.4 2.3-1a7.5 7.5 0 002 1.2l.4 2.7h5.4l.4-2.7a7.5 7.5 0 002-1.2l2.3 1 2-3.4-2-1.5c.07-.4.1-.8.1-1.2z"/></svg>
+      </span>
+      <span class="header__settings-label">設定</span>
+    </button>
   </header>
 
   <!-- ===== 本体 ===== -->
@@ -81,12 +89,49 @@
 
   </div>
 
+  <!-- ===== ログイン ===== -->
+  <div class="modal" id="loginModal" hidden>
+    <div class="modal__scrim" data-close></div>
+    <div class="modal__panel modal__panel--narrow" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <header class="modal__head">
+        <h2 class="modal__title" id="loginTitle">職員ログイン</h2>
+        <button class="icon-button modal__close" type="button" data-close aria-label="閉じる">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>
+        </button>
+      </header>
+      <div class="modal__body" id="loginBody"></div>
+    </div>
+  </div>
+
+  <!-- ===== 設定 ===== -->
+  <div class="modal" id="settingsModal" hidden>
+    <div class="modal__scrim" data-close></div>
+    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <header class="modal__head">
+        <h2 class="modal__title" id="settingsTitle">設定</h2>
+        <button class="icon-button modal__close" type="button" data-close aria-label="設定を閉じる">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>
+        </button>
+      </header>
+      <div class="modal__body" id="settingsBody"></div>
+    </div>
+  </div>
+
   <!-- ===== 通知 ===== -->
   <div class="toast-area" id="toastArea" role="status" aria-live="polite"></div>
+
+  <!-- Supabase クライアント（バージョン固定 + 改ざん検知つき） -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.js"
+    integrity="sha384-K1nraABOP/zFehpLIUksXebbs7jMpB8gYMlb+uhVKZcWT/9Vkq1+qhv6ndC+1Yuz"
+    crossorigin="anonymous"></script>
 
   <script src="data/apps.js"></script>
   <script src="js/chat.js"></script>
   <script src="js/apps.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/settings.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

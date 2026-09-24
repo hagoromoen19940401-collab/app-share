@@ -1,0 +1,84 @@
+/* =========================================================
+   js/supabase.js
+   Supabase への接続設定
+
+   ここに書いてよいのは「ブラウザ公開用」の情報だけ。
+   ・Project URL
+   ・Publishable key（sb_publishable_ で始まるもの）
+
+   Secret key（sb_secret_ で始まるもの）と service_role key は
+   絶対にこのファイルへ書かないこと。書くと全データが誰でも
+   読み書きできる状態になる。
+
+   Publishable key は公開されている前提の鍵で、
+   テーブルへの直接アクセスはSupabase側で禁止してある。
+   読み書きはすべてRPC（appshare_* 関数）経由で行う。
+   ========================================================= */
+
+(function (global) {
+  'use strict';
+
+  var CONFIG = {
+    url: 'https://xytxjujsydpvmrvnmcnj.supabase.co',
+    publishableKey: 'sb_publishable_EzqE7TE3zY_AuZJlZWEuKA_3fsXczmK'
+  };
+
+  var client = null;
+
+  /** supabase-js のクライアントを1つだけ作って使い回す */
+  function getClient() {
+    if (client) { return client; }
+    if (!global.supabase || !global.supabase.createClient) { return null; }
+
+    client = global.supabase.createClient(CONFIG.url, CONFIG.publishableKey, {
+      // このプロジェクトは他のアプリと共用しているため、
+      // ログイン状態をブラウザに保存しない（職員の確認は独自のRPCで行う）
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    });
+    return client;
+  }
+
+  /** RPCを呼ぶ共通処理。失敗は Error として投げる */
+  function rpc(name, params) {
+    var c = getClient();
+    if (!c) {
+      return Promise.reject(new Error('Supabaseに接続できませんでした。通信状態をご確認ください。'));
+    }
+    return c.rpc(name, params || {}).then(function (res) {
+      if (res.error) {
+        throw new Error(res.error.message || '通信に失敗しました');
+      }
+      return res.data;
+    });
+  }
+
+  var Api = {
+    /** supabase-js が読み込めているか */
+    isReady: function () { return !!getClient(); },
+
+    rpc: rpc,
+
+    /** 職員一覧（表示名のみ。パスワード関連は返らない） */
+    staffList: function () {
+      return rpc('appshare_staff_list').then(function (rows) {
+        return rows || [];
+      });
+    },
+
+    /** 職員を追加。戻り値は { ok, message, staff_id, staff_name } */
+    staffAdd: function (displayName, password) {
+      return rpc('appshare_staff_add', {
+        p_display_name: displayName,
+        p_password: password
+      }).then(function (rows) {
+        return (rows && rows[0]) || { ok: false, message: '登録できませんでした' };
+      });
+    }
+  };
+
+  global.AppShareSupabase = Api;
+})(window);

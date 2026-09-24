@@ -125,9 +125,12 @@
     preparing: '準備中'
   };
 
-  /** コメントの対応状態（今回は表示のみ。将来ここを切り替えられるようにする） */
+  /**
+   * コメントの対応状態（今回は表示のみ。将来ここを切り替えられるようにする）
+   * Supabase側の appshare_comments.status の値と一致させること
+   */
   var COMMENT_STATUS = {
-    open: '未対応',
+    pending: '未対応',
     checking: '確認中',
     done: '対応済み'
   };
@@ -137,6 +140,6 @@
     fileCategories: FILE_CATEGORIES,
     appStatusLabels: APP_STATUS_LABELS,
     commentStatus: COMMENT_STATUS,
-    defaultCommentStatus: 'open'
+    defaultCommentStatus: 'pending'
   };
 })(window);

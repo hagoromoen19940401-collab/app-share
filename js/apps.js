@@ -78,7 +78,7 @@
      --------------------------------------------------------- */
   function renderList() {
     var html = Data.apps.map(function (app) {
-      var count = global.AppShareChat.store.count(app.id);
+      var count = global.AppShareChat.countFor(app.id);
       var active = app.id === currentAppId;
       return '' +
         '<button class="app-item' + (active ? ' is-active' : '') + '" type="button" ' +
@@ -103,7 +103,7 @@
      右側の上部：現在のアプリ名とタブ
      --------------------------------------------------------- */
   function renderWorkbar(app) {
-    var commentCount = global.AppShareChat.store.count(app.id);
+    var commentCount = global.AppShareChat.countFor(app.id);
 
     var tabs = TABS.map(function (tab) {
       var active = tab.id === currentTab;

@@ -124,37 +124,52 @@ svg {
   white-space: nowrap;
 }
 
-.header__user {
+.header__session {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 
-.header__user-label {
-  font-size: 12px;
-  color: var(--text-weak);
+.header__session[hidden] { display: none; }
+
+.header__session-text {
+  font-size: 13px;
+  color: var(--text-sub);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.header__user-input {
-  width: 160px;
-  max-width: 40vw;
+.header__session-text b {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.header__logout {
+  flex: none;
   padding: 6px 10px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-sub);
-  font-size: 14px;
-  transition: border-color .15s, background .15s;
+  font-size: 12.5px;
 }
 
-.header__user-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  background: #fff;
-  box-shadow: 0 0 0 3px var(--accent-soft);
+.header__login {
+  margin-left: auto;
+  flex: none;
+  padding: 7px 14px;
+  font-size: 13px;
 }
+
+.header__login[hidden] { display: none; }
+.header__login .button__icon { width: 15px; height: 15px; }
+
+.header__settings {
+  flex: none;
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+.header__settings .button__icon { width: 15px; height: 15px; }
 
 .icon-button {
   width: 34px;
@@ -795,6 +810,7 @@ svg {
 }
 
 .composer__input:focus { outline: none; }
+.composer__input:disabled { background: transparent; color: var(--text-weak); cursor: not-allowed; }
 .composer__input::placeholder { color: var(--text-weak); }
 
 .composer__send {
@@ -812,6 +828,228 @@ svg {
   margin-top: 6px;
   font-size: 11px;
   color: var(--text-weak);
+}
+
+.inline-notice--tight {
+  margin-top: 0;
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+}
+
+.composer__error[hidden] { display: none; }
+
+.empty .button { margin-top: 14px; }
+
+/* ---------- 設定モーダル ---------- */
+.modal[hidden] { display: none; }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.modal__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(23, 33, 41, 0.38);
+}
+
+.modal__panel {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: min(86vh, 760px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+
+.modal__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal__title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.modal__close {
+  display: flex;
+  margin-left: auto;
+}
+
+.modal__body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px;
+}
+
+/* ---------- 設定の中身 ---------- */
+.settings-section__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-section__title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.settings-section__note {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--text-weak);
+}
+
+.settings-section__head .button { margin-left: auto; }
+
+.settings-subhead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.settings-count { font-size: 12px; color: var(--text-weak); }
+
+/* 入力欄 */
+.staff-form {
+  margin-top: 18px;
+  padding: 16px;
+  background: var(--surface-sub);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.staff-form[hidden] { display: none; }
+
+.field + .field { margin-top: 14px; }
+
+.field__label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.field__input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 15px;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.field__input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.field__input--short {
+  width: 130px;
+  letter-spacing: 0.4em;
+}
+
+.field__hint {
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: var(--text-weak);
+}
+
+.staff-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.button:disabled { background: var(--line-strong); cursor: default; }
+
+/* ログイン画面 */
+.modal__panel--narrow { width: min(420px, 100%); }
+
+.field__select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235c666f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px 18px;
+}
+
+.login-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.login-form__actions .button { flex: 1; justify-content: center; }
+
+/* 職員一覧 */
+.staff-list {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.staff-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  background: var(--surface);
+}
+
+.staff-item + .staff-item { border-top: 1px solid var(--line); }
+
+.staff-item__avatar {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.staff-item__name { font-size: 14.5px; font-weight: 600; }
+
+/* 成功時の通知 */
+.inline-notice--ok {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
 }
 
 /* ---------- トースト通知 ---------- */
@@ -884,7 +1122,16 @@ svg {
 
   .header__title { font-size: 15px; }
   .header__tag { display: none; }
-  .header__user-label { display: none; }
+  .header__settings-label { display: none; }
+  .header__login-label { display: none; }
+  .header__login { padding: 7px 9px; }
+  .header__session-text { font-size: 12px; max-width: 34vw; }
+  .header__logout { padding: 6px 8px; font-size: 12px; }
+  .header__settings { padding: 7px 9px; }
+  .modal { padding: 0; align-items: stretch; }
+  .modal__panel { width: 100%; max-height: 100%; border-radius: 0; border: 0; }
+  .modal__body { padding: 16px; }
+  .settings-section__head .button { margin-left: 0; }
   .main__scroll { padding: 16px 16px 4px; }
   .workbar { padding: 11px 16px 0; }
   .tab { padding: 9px 11px 11px; font-size: 13.5px; }

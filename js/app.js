@@ -9,12 +9,12 @@
   var Data = global.AppShareData;
   var Apps = global.AppShareApps;
   var Chat = global.AppShareChat;
+  var Auth = global.AppShareAuth;
 
   var SELECTED_KEY = 'app-share/selected-app';
   var TAB_KEY = 'app-share/selected-tab';
 
   var dom = {};
-  var userName = '';
 
   /* ---------------------------------------------------------
      トースト通知（alert の代わり）
@@ -41,22 +41,19 @@
   }
 
   /* ---------------------------------------------------------
-     表示名
+     ログイン状態の反映
+     コメントの投稿者名は、ログイン中の職員名がSupabase側で使われる
      --------------------------------------------------------- */
-  function initUserName() {
-    userName = Chat.userName.get();
-    dom.userInput.value = userName;
-
-    dom.userInput.addEventListener('input', function () {
-      userName = dom.userInput.value.trim();
-      Chat.userName.set(userName);
-    });
-  }
-
-  function requireUserName() {
-    showToast('コメントを投稿する前に、右上の表示名を入力してください。', 'alert');
-    dom.userInput.focus();
-    dom.userInput.select();
+  function applySession(session) {
+    if (session) {
+      dom.sessionName.textContent = session.displayName;
+      dom.headerSession.hidden = false;
+      dom.loginButton.hidden = true;
+    } else {
+      dom.headerSession.hidden = true;
+      dom.loginButton.hidden = false;
+    }
+    Chat.onAuthChange();
   }
 
   /* ---------------------------------------------------------
@@ -90,6 +87,9 @@
     // 入力欄はチャットタブのときだけ表示する
     dom.composer.hidden = (tabId !== 'chat');
     dom.mainScroll.scrollTop = 0;
+
+    // チャットタブを見ている間だけ再取得する
+    Chat.setActive(tabId === 'chat');
 
     try { global.localStorage.setItem(TAB_KEY, tabId); } catch (e) { /* 保存できなくても動作する */ }
   }
@@ -141,7 +141,9 @@
      起動
      --------------------------------------------------------- */
   function init() {
-    dom.userInput  = document.getElementById('userNameInput');
+    dom.headerSession = document.getElementById('headerSession');
+    dom.sessionName   = document.getElementById('sessionName');
+    dom.loginButton   = document.getElementById('loginButton');
     dom.sidebar    = document.getElementById('sidebar');
     dom.scrim      = document.getElementById('scrim');
     dom.navToggle  = document.getElementById('navToggle');
@@ -171,19 +173,47 @@
     Chat.init({
       listEl: document.getElementById('commentSection'),
       composerEl: document.getElementById('composer'),
+      scrollEl: dom.mainScroll,
       hooks: {
-        getUserName: function () { return userName; },
-        requireUserName: requireUserName,
-        onPosted: function () {
-          Apps.refreshCounts();
-          dom.mainScroll.scrollTop = dom.mainScroll.scrollHeight;
+        isLoggedIn: function () { return Auth.isLoggedIn(); },
+        getToken: function () {
+          var session = Auth.getSession();
+          return session ? session.token : '';
         },
-        onError: function (message) { showToast(message, 'alert'); }
+        onRequireLogin: function () { Auth.open(); },
+        onCountsChanged: function () { Apps.refreshCounts(); },
+        onSessionExpired: function () {
+          Auth.logout();
+          showToast('ログインの有効期限が切れました。もう一度ログインしてください。', 'alert');
+        }
       }
     });
 
-    initUserName();
     initSidebar();
+
+    // 職員ログイン
+    Auth.init({
+      modalEl: document.getElementById('loginModal'),
+      bodyEl: document.getElementById('loginBody'),
+      openButton: dom.loginButton,
+      logoutButton: document.getElementById('logoutButton'),
+      onChange: function (session) {
+        applySession(session);
+        showToast(session ? session.displayName + ' さんでログインしました。' : 'ログアウトしました。',
+                  session ? 'info' : 'info');
+      },
+      onOpenSettings: function () { global.AppShareSettings.open(); }
+    });
+
+    // 保存されているログイン状態を復元する（期限切れなら未ログインに戻る）
+    applySession(Auth.getSession());
+
+    // 設定（職員管理）
+    global.AppShareSettings.init({
+      modalEl: document.getElementById('settingsModal'),
+      bodyEl: document.getElementById('settingsBody'),
+      openButton: document.getElementById('settingsButton')
+    });
 
     showTab(initialTab);
 
