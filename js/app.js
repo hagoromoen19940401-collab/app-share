@@ -6,7 +6,6 @@
 (function (global) {
   'use strict';
 
-  var Data = global.AppShareData;
   var Apps = global.AppShareApps;
   var Chat = global.AppShareChat;
   var Auth = global.AppShareAuth;
@@ -49,11 +48,38 @@
 
     return global.AppShareSupabase.appsList(session.token).then(function (rows) {
       Apps.setRemoteApps(rows);
-      var selected = Apps.getCurrentId();
-      if (selected) { Apps.select(selected); }
+      applyAppsState();
     }).catch(function (error) {
       showToast('アプリ一覧を取得できませんでした。' + error.message, 'alert');
+      applyAppsState();
     });
+  }
+
+  /**
+   * アプリの有無に応じて右側の表示を切り替える。
+   * 固定のアプリは持たないため、登録が0件のときは案内を出す。
+   */
+  function applyAppsState() {
+    var list = Apps.list();
+
+    if (!list.length) {
+      dom.emptyApps.hidden = false;
+      dom.workbar.hidden = true;
+      dom.mainScroll.hidden = true;
+      dom.composer.hidden = true;
+      document.title = 'あぷりんく';
+      return;
+    }
+
+    dom.emptyApps.hidden = true;
+    dom.workbar.hidden = false;
+    dom.mainScroll.hidden = false;
+
+    var selected = Apps.getCurrentId();
+    if (!selected || !Apps.find(selected)) { selected = restoreSelectedApp(); }
+
+    showTab(Apps.getTab());
+    if (selected) { selectApp(selected); }
   }
 
   /* ---------------------------------------------------------
@@ -74,17 +100,17 @@
     Chat.onAuthChange();
 
     if (session) {
+      // 表示の切り替えは、アプリ一覧を受け取ってから行う
       dom.loginPrompt.hidden = true;
-      dom.workbar.hidden = false;
-      dom.mainScroll.hidden = false;
-      showTab(Apps.getTab());
-
-      var first = restoreSelectedApp();
-      if (first) { selectApp(first); }
+      dom.emptyApps.hidden = true;
+      dom.workbar.hidden = true;
+      dom.mainScroll.hidden = true;
+      dom.composer.hidden = true;
       loadRemoteApps();
     } else {
       // 未ログインではアプリの中身を見せない
       dom.loginPrompt.hidden = false;
+      dom.emptyApps.hidden = true;
       dom.workbar.hidden = true;
       dom.mainScroll.hidden = true;
       dom.composer.hidden = true;
@@ -156,7 +182,9 @@
     var saved = null;
     try { saved = global.localStorage.getItem(SELECTED_KEY); } catch (e) { saved = null; }
     if (saved && Apps.find(saved)) { return saved; }
-    return Data.apps.length ? Data.apps[0].id : null;
+
+    var list = Apps.list();
+    return list.length ? list[0].id : null;
   }
 
   /* ---------------------------------------------------------
@@ -188,6 +216,10 @@
     dom.composer    = document.getElementById('composer');
     dom.workbar     = document.getElementById('workbar');
     dom.loginPrompt = document.getElementById('loginPrompt');
+    dom.emptyApps   = document.getElementById('emptyApps');
+    dom.emptyApps.addEventListener('click', function (event) {
+      if (event.target.closest('[data-open-settings]')) { global.AppShareSettings.open(); }
+    });
     dom.loginPrompt.addEventListener('click', function (event) {
       if (event.target.closest('[data-open-login]')) { Auth.open(); }
     });
@@ -209,7 +241,8 @@
       onSelect: selectApp,
       onOpenApp: openApp,
       onTabChange: showTab,
-      onRequireLogin: function () { Auth.open(); }
+      onRequireLogin: function () { Auth.open(); },
+      onOpenSettings: function () { global.AppShareSettings.open(); }
     });
 
     Chat.init({

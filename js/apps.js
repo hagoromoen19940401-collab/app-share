@@ -14,11 +14,7 @@
      線画アイコン（絵文字は使わない）
      --------------------------------------------------------- */
   var ICONS = {
-    calendar:  '<path d="M4 6.5h16v13H4z"/><path d="M4 10.5h16"/><path d="M8.5 4v4M15.5 4v4"/>',
     note:      '<path d="M6 3.5h9l4 4v13H6z"/><path d="M15 3.5v4h4"/><path d="M9 12h7M9 15.5h5"/>',
-    clipboard: '<path d="M8.5 5.5H6v15h12v-15h-2.5"/><path d="M9 3.5h6v3H9z"/><path d="M9.5 12h5M9.5 15.5h3"/>',
-    route:     '<path d="M6.5 19.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/><path d="M17.5 9.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/><path d="M9 17h4.5a3.5 3.5 0 000-7h-3a3.5 3.5 0 010-7H15"/>',
-    drop:      '<path d="M12 3.5s5.5 5.6 5.5 9.4a5.5 5.5 0 01-11 0C6.5 9.1 12 3.5 12 3.5z"/><path d="M9.5 13.5a2.5 2.5 0 002.5 2.5"/>',
     external:  '<path d="M14 4.5h5.5V10"/><path d="M19.5 4.5L11 13"/><path d="M18 14v5.5H4.5V6H10"/>',
     alert:     '<path d="M12 4.5l8.5 15H3.5z"/><path d="M12 10v4"/><path d="M12 16.8v.2"/>',
     info:      '<path d="M12 20.5a8.5 8.5 0 100-17 8.5 8.5 0 000 17z"/><path d="M12 11v5.5"/><path d="M12 7.6v.2"/>',
@@ -72,6 +68,7 @@
   var onOpenApp = null;
   var onTabChange = null;
   var onRequireLogin = null;
+  var onOpenSettings = null;
   var currentAppId = null;
   var currentTab = 'overview';
   var remoteApps = [];   // Supabaseに登録されたアプリ
@@ -83,19 +80,15 @@
       id: row.id,
       name: row.name,
       description: row.description || '',
-      version: '',
-      updatedAt: String(row.created_at || '').slice(0, 10),
-      changelog: [],
-      status: 'running',
+      registeredAt: String(row.created_at || '').slice(0, 10),
       path: row.url,
-      icon: 'external',
-      isRemote: true
+      icon: 'external'
     };
   }
 
-  /** 既存の5アプリ + 登録されたアプリ */
+  /** 登録されたアプリの一覧（固定のアプリは持たない） */
   function allApps() {
-    return Data.apps.concat(remoteApps);
+    return remoteApps.slice();
   }
 
   /* ---------------------------------------------------------
@@ -104,11 +97,7 @@
   function appItemHtml(app) {
     var count = global.AppShareChat.countFor(app.id);
     var active = app.id === currentAppId;
-
-    var meta = app.isRemote
-      ? '登録 ' + Util.escapeHtml(Util.formatDate(app.updatedAt))
-      : 'Ver ' + Util.escapeHtml(app.version) +
-        '<span class="app-item__dot"></span>' + Util.escapeHtml(Data.appStatusLabels[app.status] || '');
+    var meta = '登録 ' + Util.escapeHtml(Util.formatDate(app.registeredAt));
 
     return '' +
       '<button class="app-item' + (active ? ' is-active' : '') + '" type="button" ' +
@@ -135,8 +124,22 @@
       return;
     }
 
-    els.listEl.innerHTML = allApps().map(appItemHtml).join('');
-    if (els.countEl) { els.countEl.textContent = allApps().length; }
+    var list = allApps();
+
+    if (!list.length) {
+      els.listEl.innerHTML = '' +
+        '<div class="sidebar-empty">' +
+          '<p class="sidebar-empty__text">まだアプリが登録されていません</p>' +
+          '<button class="button button--ghost sidebar-empty__button" type="button" data-open-settings>' +
+            '設定から登録' +
+          '</button>' +
+        '</div>';
+      if (els.countEl) { els.countEl.textContent = ''; }
+      return;
+    }
+
+    els.listEl.innerHTML = list.map(appItemHtml).join('');
+    if (els.countEl) { els.countEl.textContent = list.length; }
   }
 
   /* ---------------------------------------------------------
@@ -170,34 +173,15 @@
      概要タブ
      --------------------------------------------------------- */
   function renderDetail(app) {
-    var statusLabel = Data.appStatusLabels[app.status] || '';
-    var changelog = (app.changelog || []).map(function (line) {
-      return '<li class="changelog__item">' + Util.escapeHtml(line) + '</li>';
-    }).join('');
+    var meta =
+      '<span class="detail__meta-item">登録日 ' + Util.escapeHtml(Util.formatDate(app.registeredAt)) + '</span>' +
+      '<span class="badge badge--running">登録済み</span>';
 
-    var meta = app.isRemote
-      ? '<span class="detail__meta-item">登録日 ' + Util.escapeHtml(Util.formatDate(app.updatedAt)) + '</span>' +
-        '<span class="badge badge--running">登録済み</span>'
-      : '<span class="detail__meta-item">Version ' + Util.escapeHtml(app.version) + '</span>' +
-        '<span class="detail__meta-item">最終更新 ' + Util.escapeHtml(Util.formatDate(app.updatedAt)) + '</span>' +
-        '<span class="badge badge--' + Util.escapeHtml(app.status) + '">' + Util.escapeHtml(statusLabel) + '</span>';
-
-    var hint = app.isRemote
-      ? '<span class="detail__hint detail__url">' + Util.escapeHtml(app.path) + '</span>'
-      : '<span class="detail__hint">最新版が別タブで開きます</span>';
+    var hint = '<span class="detail__hint detail__url">' + Util.escapeHtml(app.path) + '</span>';
 
     var description = app.description
       ? '<p class="detail__description">' + Util.escapeHtml(app.description) + '</p>'
-      : (app.isRemote ? '<p class="detail__description detail__description--weak">説明は登録されていません。</p>' : '');
-
-    var section = app.isRemote
-      ? ''
-      : '<div class="detail__section">' +
-          '<h2 class="section-title">今回の更新内容</h2>' +
-          (changelog
-            ? '<ul class="changelog">' + changelog + '</ul>'
-            : '<p class="detail__description">更新内容は登録されていません。</p>') +
-        '</div>';
+      : '<p class="detail__description detail__description--weak">説明は登録されていません。</p>';
 
     els.detailEl.innerHTML = '' +
       '<div class="detail__head">' +
@@ -221,9 +205,7 @@
       '<div class="inline-notice" id="openNotice" hidden>' +
         icon('alert', 'inline-notice__icon') +
         '<span id="openNoticeText"></span>' +
-      '</div>' +
-
-      section;
+      '</div>';
 
     var openButton = document.getElementById('openAppButton');
     if (openButton) {
@@ -251,8 +233,8 @@
         return Util.escapeHtml(file.label || file.id);
       }).join('　');
     } else if (isLatest) {
-      meta = 'Version ' + Util.escapeHtml(app.version) +
-             '<span class="file-row__dot"></span>更新日 ' + Util.escapeHtml(Util.formatDate(app.updatedAt));
+      meta = '登録日 ' + Util.escapeHtml(Util.formatDate(app.registeredAt)) +
+             '<span class="file-row__dot"></span>' + Util.escapeHtml(category.hint);
     } else {
       meta = Util.escapeHtml(category.hint);
     }
@@ -307,12 +289,17 @@
       onOpenApp      = options.onOpenApp;
       onTabChange    = options.onTabChange;
       onRequireLogin = options.onRequireLogin;
+      onOpenSettings = options.onOpenSettings;
 
       if (options.initialTab) { currentTab = options.initialTab; }
 
       els.listEl.addEventListener('click', function (event) {
         if (event.target.closest('[data-login]')) {
           if (onRequireLogin) { onRequireLogin(); }
+          return;
+        }
+        if (event.target.closest('[data-open-settings]')) {
+          if (onOpenSettings) { onOpenSettings(); }
           return;
         }
         var button = event.target.closest('.app-item');

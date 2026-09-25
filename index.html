@@ -94,6 +94,18 @@
         </div>
       </div>
 
+      <!-- アプリが1件も登録されていないとき -->
+      <div class="login-prompt" id="emptyApps" hidden>
+        <div class="login-prompt__box">
+          <span class="login-prompt__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M3.5 6.5h6l2 2.5h9v9.5h-17z"/><path d="M12 11.5v5M9.5 14h5"/></svg>
+          </span>
+          <h2 class="login-prompt__title">まだアプリが登録されていません</h2>
+          <p class="login-prompt__text">設定からアプリを登録してください。登録すると左の一覧に並びます。</p>
+          <button class="button" type="button" data-open-settings>設定を開く</button>
+        </div>
+      </div>
+
       <!-- アプリ名＋タブ（概要 / ファイル / チャット） -->
       <div class="workbar" id="workbar"></div>
 
