@@ -77,6 +77,25 @@
       }).then(function (rows) {
         return (rows && rows[0]) || { ok: false, message: '登録できませんでした' };
       });
+    },
+
+    /** 登録されたアプリの一覧（ログイン中のみ） */
+    appsList: function (token) {
+      return rpc('appshare_apps_list', { p_token: token }).then(function (rows) {
+        return rows || [];
+      });
+    },
+
+    /** アプリを登録。戻り値は { ok, message, app_id, app_name } */
+    appAdd: function (token, name, url, description) {
+      return rpc('appshare_app_add', {
+        p_token: token,
+        p_name: name,
+        p_url: url,
+        p_description: description || ''
+      }).then(function (rows) {
+        return (rows && rows[0]) || { ok: false, message: '登録できませんでした' };
+      });
     }
   };
 

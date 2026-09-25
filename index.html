@@ -82,6 +82,18 @@
     <!-- 右：アプリ情報＋コメント -->
     <main class="main" id="main">
 
+      <!-- 未ログインのとき -->
+      <div class="login-prompt" id="loginPrompt" hidden>
+        <div class="login-prompt__box">
+          <span class="login-prompt__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M6.5 10.5h11v9h-11z"/><path d="M9 10.5V8a3 3 0 016 0v2.5"/></svg>
+          </span>
+          <h2 class="login-prompt__title">ログインしてください</h2>
+          <p class="login-prompt__text">職員としてログインすると、アプリ一覧とコメントが表示されます。</p>
+          <button class="button" type="button" data-open-login>ログイン</button>
+        </div>
+      </div>
+
       <!-- アプリ名＋タブ（概要 / ファイル / チャット） -->
       <div class="workbar" id="workbar"></div>
 

@@ -41,6 +41,22 @@
   }
 
   /* ---------------------------------------------------------
+     登録されたアプリの読み込み（ログイン中のみ）
+     --------------------------------------------------------- */
+  function loadRemoteApps() {
+    var session = Auth.getSession();
+    if (!session) { return Promise.resolve(); }
+
+    return global.AppShareSupabase.appsList(session.token).then(function (rows) {
+      Apps.setRemoteApps(rows);
+      var selected = Apps.getCurrentId();
+      if (selected) { Apps.select(selected); }
+    }).catch(function (error) {
+      showToast('アプリ一覧を取得できませんでした。' + error.message, 'alert');
+    });
+  }
+
+  /* ---------------------------------------------------------
      ログイン状態の反映
      コメントの投稿者名は、ログイン中の職員名がSupabase側で使われる
      --------------------------------------------------------- */
@@ -53,7 +69,27 @@
       dom.headerSession.hidden = true;
       dom.loginButton.hidden = false;
     }
+
+    Apps.setLoggedIn(!!session);
     Chat.onAuthChange();
+
+    if (session) {
+      dom.loginPrompt.hidden = true;
+      dom.workbar.hidden = false;
+      dom.mainScroll.hidden = false;
+      showTab(Apps.getTab());
+
+      var first = restoreSelectedApp();
+      if (first) { selectApp(first); }
+      loadRemoteApps();
+    } else {
+      // 未ログインではアプリの中身を見せない
+      dom.loginPrompt.hidden = false;
+      dom.workbar.hidden = true;
+      dom.mainScroll.hidden = true;
+      dom.composer.hidden = true;
+      document.title = 'あぷりんく';
+    }
   }
 
   /* ---------------------------------------------------------
@@ -134,7 +170,7 @@
       showToast(message, 'alert');
       return;
     }
-    global.open(app.path, '_blank');
+    global.open(app.path, '_blank', 'noopener');
   }
 
   /* ---------------------------------------------------------
@@ -149,7 +185,12 @@
     dom.navToggle  = document.getElementById('navToggle');
     dom.mainScroll = document.getElementById('mainScroll');
     dom.toastArea  = document.getElementById('toastArea');
-    dom.composer   = document.getElementById('composer');
+    dom.composer    = document.getElementById('composer');
+    dom.workbar     = document.getElementById('workbar');
+    dom.loginPrompt = document.getElementById('loginPrompt');
+    dom.loginPrompt.addEventListener('click', function (event) {
+      if (event.target.closest('[data-open-login]')) { Auth.open(); }
+    });
     dom.panels     = {
       overview: document.getElementById('panelOverview'),
       files:    document.getElementById('panelFiles'),
@@ -167,7 +208,8 @@
       initialTab: initialTab,
       onSelect: selectApp,
       onOpenApp: openApp,
-      onTabChange: showTab
+      onTabChange: showTab,
+      onRequireLogin: function () { Auth.open(); }
     });
 
     Chat.init({
@@ -206,19 +248,25 @@
     });
 
     // 保存されているログイン状態を復元する（期限切れなら未ログインに戻る）
+    // アプリの選択とタブの表示も、この中で行う
     applySession(Auth.getSession());
 
     // 設定（職員管理）
     global.AppShareSettings.init({
       modalEl: document.getElementById('settingsModal'),
       bodyEl: document.getElementById('settingsBody'),
-      openButton: document.getElementById('settingsButton')
+      openButton: document.getElementById('settingsButton'),
+      hooks: {
+        isLoggedIn: function () { return Auth.isLoggedIn(); },
+        getToken: function () {
+          var session = Auth.getSession();
+          return session ? session.token : '';
+        },
+        onRequireLogin: function () { Auth.open(); },
+        onAppsChanged: loadRemoteApps          // 登録したらすぐ左の一覧に反映する
+      }
     });
 
-    showTab(initialTab);
-
-    var first = restoreSelectedApp();
-    if (first) { selectApp(first); }
   }
 
   if (document.readyState === 'loading') {

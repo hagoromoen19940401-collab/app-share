@@ -57,8 +57,9 @@
      アプリ検索
      --------------------------------------------------------- */
   function findApp(appId) {
-    for (var i = 0; i < Data.apps.length; i++) {
-      if (Data.apps[i].id === appId) { return Data.apps[i]; }
+    var list = allApps();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === appId) { return list[i]; }
     }
     return null;
   }
@@ -70,33 +71,72 @@
   var onSelect = null;
   var onOpenApp = null;
   var onTabChange = null;
+  var onRequireLogin = null;
   var currentAppId = null;
   var currentTab = 'overview';
+  var remoteApps = [];   // Supabaseに登録されたアプリ
+  var loggedIn = false;
+
+  /** Supabaseの1行を、画面で使う形に合わせる */
+  function toApp(row) {
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description || '',
+      version: '',
+      updatedAt: String(row.created_at || '').slice(0, 10),
+      changelog: [],
+      status: 'running',
+      path: row.url,
+      icon: 'external',
+      isRemote: true
+    };
+  }
+
+  /** 既存の5アプリ + 登録されたアプリ */
+  function allApps() {
+    return Data.apps.concat(remoteApps);
+  }
 
   /* ---------------------------------------------------------
      左側：アプリ一覧（共有フォルダの一覧として見せる）
      --------------------------------------------------------- */
-  function renderList() {
-    var html = Data.apps.map(function (app) {
-      var count = global.AppShareChat.countFor(app.id);
-      var active = app.id === currentAppId;
-      return '' +
-        '<button class="app-item' + (active ? ' is-active' : '') + '" type="button" ' +
-            'data-app-id="' + Util.escapeHtml(app.id) + '"' + (active ? ' aria-current="true"' : '') + '>' +
-          '<span class="app-item__tile" aria-hidden="true">' +
-            '<svg viewBox="0 0 24 24">' + (ICONS[app.icon] || ICONS.note) + '</svg>' +
-          '</span>' +
-          '<span class="app-item__body">' +
-            '<span class="app-item__name">' + Util.escapeHtml(app.name) + '</span>' +
-            '<span class="app-item__meta">Ver ' + Util.escapeHtml(app.version) +
-              '<span class="app-item__dot"></span>' + Util.escapeHtml(Data.appStatusLabels[app.status] || '') + '</span>' +
-          '</span>' +
-          (count ? '<span class="app-item__count">' + count + '</span>' : '') +
-        '</button>';
-    }).join('');
+  function appItemHtml(app) {
+    var count = global.AppShareChat.countFor(app.id);
+    var active = app.id === currentAppId;
 
-    els.listEl.innerHTML = html;
-    if (els.countEl) { els.countEl.textContent = Data.apps.length; }
+    var meta = app.isRemote
+      ? '登録 ' + Util.escapeHtml(Util.formatDate(app.updatedAt))
+      : 'Ver ' + Util.escapeHtml(app.version) +
+        '<span class="app-item__dot"></span>' + Util.escapeHtml(Data.appStatusLabels[app.status] || '');
+
+    return '' +
+      '<button class="app-item' + (active ? ' is-active' : '') + '" type="button" ' +
+          'data-app-id="' + Util.escapeHtml(app.id) + '"' + (active ? ' aria-current="true"' : '') + '>' +
+        '<span class="app-item__tile" aria-hidden="true">' +
+          '<svg viewBox="0 0 24 24">' + (ICONS[app.icon] || ICONS.note) + '</svg>' +
+        '</span>' +
+        '<span class="app-item__body">' +
+          '<span class="app-item__name">' + Util.escapeHtml(app.name) + '</span>' +
+          '<span class="app-item__meta">' + meta + '</span>' +
+        '</span>' +
+        (count ? '<span class="app-item__count">' + count + '</span>' : '') +
+      '</button>';
+  }
+
+  function renderList() {
+    if (!loggedIn) {
+      els.listEl.innerHTML = '' +
+        '<div class="sidebar-empty">' +
+          '<p class="sidebar-empty__text">ログインするとアプリ一覧が表示されます</p>' +
+          '<button class="button button--ghost sidebar-empty__button" type="button" data-login>ログイン</button>' +
+        '</div>';
+      if (els.countEl) { els.countEl.textContent = ''; }
+      return;
+    }
+
+    els.listEl.innerHTML = allApps().map(appItemHtml).join('');
+    if (els.countEl) { els.countEl.textContent = allApps().length; }
   }
 
   /* ---------------------------------------------------------
@@ -135,27 +175,47 @@
       return '<li class="changelog__item">' + Util.escapeHtml(line) + '</li>';
     }).join('');
 
+    var meta = app.isRemote
+      ? '<span class="detail__meta-item">登録日 ' + Util.escapeHtml(Util.formatDate(app.updatedAt)) + '</span>' +
+        '<span class="badge badge--running">登録済み</span>'
+      : '<span class="detail__meta-item">Version ' + Util.escapeHtml(app.version) + '</span>' +
+        '<span class="detail__meta-item">最終更新 ' + Util.escapeHtml(Util.formatDate(app.updatedAt)) + '</span>' +
+        '<span class="badge badge--' + Util.escapeHtml(app.status) + '">' + Util.escapeHtml(statusLabel) + '</span>';
+
+    var hint = app.isRemote
+      ? '<span class="detail__hint detail__url">' + Util.escapeHtml(app.path) + '</span>'
+      : '<span class="detail__hint">最新版が別タブで開きます</span>';
+
+    var description = app.description
+      ? '<p class="detail__description">' + Util.escapeHtml(app.description) + '</p>'
+      : (app.isRemote ? '<p class="detail__description detail__description--weak">説明は登録されていません。</p>' : '');
+
+    var section = app.isRemote
+      ? ''
+      : '<div class="detail__section">' +
+          '<h2 class="section-title">今回の更新内容</h2>' +
+          (changelog
+            ? '<ul class="changelog">' + changelog + '</ul>'
+            : '<p class="detail__description">更新内容は登録されていません。</p>') +
+        '</div>';
+
     els.detailEl.innerHTML = '' +
       '<div class="detail__head">' +
         icon(app.icon, 'detail__icon') +
         '<div class="detail__heading">' +
           '<h1 class="detail__name">' + Util.escapeHtml(app.name) + '</h1>' +
-          '<div class="detail__meta">' +
-            '<span class="detail__meta-item">Version ' + Util.escapeHtml(app.version) + '</span>' +
-            '<span class="detail__meta-item">最終更新 ' + Util.escapeHtml(Util.formatDate(app.updatedAt)) + '</span>' +
-            '<span class="badge badge--' + Util.escapeHtml(app.status) + '">' + Util.escapeHtml(statusLabel) + '</span>' +
-          '</div>' +
+          '<div class="detail__meta">' + meta + '</div>' +
         '</div>' +
       '</div>' +
 
-      '<p class="detail__description">' + Util.escapeHtml(app.description) + '</p>' +
+      description +
 
       '<div class="detail__actions">' +
         '<button class="button" type="button" id="openAppButton">' +
           icon('external', 'button__icon') +
           '<span>アプリを開く</span>' +
         '</button>' +
-        '<span class="detail__hint">最新版が別タブで開きます</span>' +
+        hint +
       '</div>' +
 
       '<div class="inline-notice" id="openNotice" hidden>' +
@@ -163,12 +223,7 @@
         '<span id="openNoticeText"></span>' +
       '</div>' +
 
-      '<div class="detail__section">' +
-        '<h2 class="section-title">今回の更新内容</h2>' +
-        (changelog
-          ? '<ul class="changelog">' + changelog + '</ul>'
-          : '<p class="detail__description">更新内容は登録されていません。</p>') +
-      '</div>';
+      section;
 
     var openButton = document.getElementById('openAppButton');
     if (openButton) {
@@ -243,18 +298,23 @@
     tabs: TABS,
 
     init: function (options) {
-      els.listEl    = options.listEl;
-      els.countEl   = options.countEl;
-      els.workbarEl = options.workbarEl;
-      els.detailEl  = options.detailEl;
-      els.filesEl   = options.filesEl;
-      onSelect      = options.onSelect;
-      onOpenApp     = options.onOpenApp;
-      onTabChange   = options.onTabChange;
+      els.listEl     = options.listEl;
+      els.countEl    = options.countEl;
+      els.workbarEl  = options.workbarEl;
+      els.detailEl   = options.detailEl;
+      els.filesEl    = options.filesEl;
+      onSelect       = options.onSelect;
+      onOpenApp      = options.onOpenApp;
+      onTabChange    = options.onTabChange;
+      onRequireLogin = options.onRequireLogin;
 
       if (options.initialTab) { currentTab = options.initialTab; }
 
       els.listEl.addEventListener('click', function (event) {
+        if (event.target.closest('[data-login]')) {
+          if (onRequireLogin) { onRequireLogin(); }
+          return;
+        }
         var button = event.target.closest('.app-item');
         if (!button) { return; }
         var appId = button.getAttribute('data-app-id');
@@ -310,7 +370,26 @@
       notice.hidden = false;
     },
 
-    getCurrentId: function () { return currentAppId; }
+    getCurrentId: function () { return currentAppId; },
+
+    /** ログイン状態を伝える。未ログインならアプリ一覧を出さない */
+    setLoggedIn: function (value) {
+      loggedIn = !!value;
+      if (!loggedIn) {
+        remoteApps = [];
+        currentAppId = null;
+      }
+      renderList();
+    },
+
+    /** Supabaseから取得した登録アプリを反映する */
+    setRemoteApps: function (rows) {
+      remoteApps = (rows || []).map(toApp);
+      renderList();
+    },
+
+    /** 既存5アプリ + 登録アプリ */
+    list: allApps
   };
 
   global.AppShareApps = Apps;
