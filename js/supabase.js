@@ -93,13 +93,41 @@
       });
     },
 
-    /** 職員を追加。戻り値は { ok, message, staff_id, staff_name } */
-    staffAdd: function (displayName, password) {
+    /**
+     * 職員を追加。設定パスワードの確認（settings_token）が必須。
+     * 戻り値は { ok, message, staff_id, staff_name }
+     */
+    staffAdd: function (settingsToken, displayName, password) {
       return rpc('appshare_staff_add', {
+        p_settings_token: settingsToken,
         p_display_name: displayName,
         p_password: password
       }).then(function (rows) {
         return (rows && rows[0]) || { ok: false, message: '登録できませんでした' };
+      });
+    },
+
+    /** 設定パスワードが登録済みかどうか（ログイン不要） */
+    settingsStatus: function () {
+      return rpc('appshare_settings_status').then(function (rows) {
+        return (rows && rows[0]) || { configured: false, locked: false };
+      });
+    },
+
+    /** 最初の設定パスワードを登録する。戻り値に settings_token を含む */
+    settingsInit: function (token, newPassword) {
+      return rpc('appshare_settings_init', {
+        p_token: token || '',
+        p_new_password: newPassword
+      }).then(function (rows) {
+        return (rows && rows[0]) || { ok: false, message: '設定できませんでした' };
+      });
+    },
+
+    /** 設定パスワードを確認して settings_token を受け取る（職員ログインは不要） */
+    settingsUnlock: function (password) {
+      return rpc('appshare_settings_unlock', { p_password: password }).then(function (rows) {
+        return (rows && rows[0]) || { ok: false, message: '確認できませんでした' };
       });
     },
 
@@ -153,10 +181,14 @@
       return callImageFunction({ action: 'delete-object', token: token, paths: list });
     },
 
-    /** アプリを登録。戻り値は { ok, message, app_id, app_name } */
-    appAdd: function (token, name, url, description) {
+    /**
+     * アプリを登録。職員ログインと設定パスワードの確認の両方が必要。
+     * 戻り値は { ok, message, app_id, app_name }
+     */
+    appAdd: function (token, settingsToken, name, url, description) {
       return rpc('appshare_app_add', {
         p_token: token,
+        p_settings_token: settingsToken,
         p_name: name,
         p_url: url,
         p_description: description || ''

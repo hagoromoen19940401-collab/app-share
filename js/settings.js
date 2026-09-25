@@ -2,6 +2,11 @@
    js/settings.js
    設定画面（自分のアカウント / 職員管理 / アプリ管理）
 
+   設定画面は施設で共有する4桁の「設定パスワード」で保護する。
+   確認できた場合だけ 30分有効の settings_token を受け取り、
+   職員登録とアプリ登録はその token をSupabaseへ渡して検証させる。
+   設定パスワードそのものは保存しない。
+
    ・登録済み職員の一覧表示   … appshare_staff_list()
    ・職員の追加               … appshare_staff_add()
    ・登録済みアプリの一覧表示 … appshare_apps_list(token)
@@ -20,6 +25,11 @@
   var isOpen = false;
   var lastFocused = null;
   var hooks = {};      // getToken / isLoggedIn / onAppsChanged / onRequireLogin
+
+  // 設定用トークン（sessionStorage に置く。ブラウザを閉じると消える）
+  var SETTINGS_KEY = 'app-share/settings-session';
+  var settingsSession = null;   // { token, expiresAt }
+  var gateBusy = false;
 
   /* ---------------------------------------------------------
      画面の組み立て
@@ -220,6 +230,48 @@
   function clearMessage() { clearMessageIn('staff'); }
 
   /* ---------------------------------------------------------
+     設定用トークンの保持
+     設定パスワードそのものは保存しない
+     --------------------------------------------------------- */
+  function readSettingsSession() {
+    try {
+      var raw = global.sessionStorage.getItem(SETTINGS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeSettingsSession(value) {
+    try {
+      if (value === null) {
+        global.sessionStorage.removeItem(SETTINGS_KEY);
+      } else {
+        global.sessionStorage.setItem(SETTINGS_KEY, JSON.stringify(value));
+      }
+    } catch (e) { /* 保存できなくても、その場では使える */ }
+  }
+
+  /** 有効な設定用トークン。期限切れなら null */
+  function settingsToken() {
+    if (!settingsSession) { settingsSession = readSettingsSession(); }
+    if (!settingsSession || !settingsSession.token) { return null; }
+
+    var expires = new Date(settingsSession.expiresAt).getTime();
+    if (!expires || expires <= Date.now()) {
+      settingsSession = null;
+      writeSettingsSession(null);
+      return null;
+    }
+    return settingsSession.token;
+  }
+
+  function keepSettingsSession(token, validUntil) {
+    settingsSession = { token: token, expiresAt: validUntil };
+    writeSettingsSession(settingsSession);
+  }
+
+  /* ---------------------------------------------------------
      職員一覧
      --------------------------------------------------------- */
   function renderStaffList(rows) {
@@ -299,7 +351,15 @@
     button.textContent = '登録中…';
     clearMessage();
 
-    Api.staffAdd(name, pass).then(function (result) {
+    var gate = settingsToken();
+    if (!gate) {
+      showMessage('設定パスワードの確認が必要です。設定を開き直してください。', 'error');
+      button.disabled = false;
+      button.textContent = '登録';
+      return;
+    }
+
+    Api.staffAdd(gate, name, pass).then(function (result) {
       if (!result.ok) {
         showMessage(result.message || '登録できませんでした。', 'error');
         return;
@@ -488,7 +548,15 @@
     button.textContent = '登録中…';
     clearMessageIn('app');
 
-    Api.appAdd(hooks.getToken(), name, url, desc).then(function (result) {
+    var gateToken = settingsToken();
+    if (!gateToken) {
+      showMessageIn('app', '設定パスワードの確認が必要です。設定を開き直してください。', 'error');
+      button.disabled = false;
+      button.textContent = '登録';
+      return;
+    }
+
+    Api.appAdd(hooks.getToken(), gateToken, name, url, desc).then(function (result) {
       if (!result.ok) {
         showMessageIn('app', result.message || '登録できませんでした。', 'error');
         return;
@@ -510,14 +578,163 @@
   }
 
   /* ---------------------------------------------------------
+     設定パスワードの入力画面
+     --------------------------------------------------------- */
+  function gateHtml(mode) {
+    var first = mode === 'init';
+
+    var fields = first
+      ? '<div class="field">' +
+          '<label class="field__label" for="gateNew">新しい設定パスワード</label>' +
+          '<input class="field__input field__input--short" id="gateNew" type="password" ' +
+                 'inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••">' +
+          '<p class="field__hint">4桁の数字で入力してください。職員全員で共有します。</p>' +
+        '</div>' +
+        '<div class="field">' +
+          '<label class="field__label" for="gateConfirm">確認</label>' +
+          '<input class="field__input field__input--short" id="gateConfirm" type="password" ' +
+                 'inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••">' +
+        '</div>'
+      : '<div class="field">' +
+          '<label class="field__label" for="gatePassword">設定パスワード</label>' +
+          '<input class="field__input field__input--short" id="gatePassword" type="password" ' +
+                 'inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">' +
+        '</div>';
+
+    return '' +
+      '<section class="settings-section">' +
+        '<div class="settings-section__head">' +
+          '<div>' +
+            '<h3 class="settings-section__title">' +
+              (first ? '設定パスワードの登録' : '設定パスワード') +
+            '</h3>' +
+            '<p class="settings-section__note">' +
+              (first
+                ? 'この端末から、最初の設定パスワードを決めてください。'
+                : '職員管理とアプリ管理を開くには、設定パスワードが必要です。') +
+            '</p>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="staff-form" style="margin-top:16px">' +
+          fields +
+          '<div class="staff-form__actions">' +
+            '<button class="button" type="button" id="gateSubmit">' +
+              (first ? '設定する' : '設定を開く') +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="inline-notice" id="gateMessage" hidden>' +
+          '<span class="inline-notice__icon" aria-hidden="true" id="gateMessageIcon"></span>' +
+          '<span id="gateMessageText"></span>' +
+        '</div>' +
+      '</section>';
+  }
+
+  function renderGate(mode) {
+    els.body.innerHTML = gateHtml(mode);
+
+    var ids = mode === 'init' ? ['gateNew', 'gateConfirm'] : ['gatePassword'];
+
+    ids.forEach(function (id) {
+      var input = document.getElementById(id);
+      input.addEventListener('input', function () {
+        input.value = input.value.replace(/[^0-9]/g, '').slice(0, 4);
+      });
+      input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          submitGate(mode);
+        }
+      });
+    });
+
+    document.getElementById('gateSubmit').addEventListener('click', function () {
+      submitGate(mode);
+    });
+    document.getElementById(ids[0]).focus();
+  }
+
+  function submitGate(mode) {
+    if (gateBusy) { return; }
+
+    var button = document.getElementById('gateSubmit');
+
+    if (mode === 'init') {
+      var next = document.getElementById('gateNew');
+      var confirm = document.getElementById('gateConfirm');
+
+      if (!/^[0-9]{4}$/.test(next.value)) {
+        showMessageIn('gate', '設定パスワードは4桁の数字で入力してください。', 'error');
+        next.focus();
+        return;
+      }
+      if (next.value !== confirm.value) {
+        showMessageIn('gate', '設定パスワードが一致しません', 'error');
+        confirm.value = '';
+        confirm.focus();
+        return;
+      }
+
+      gateBusy = true;
+      button.disabled = true;
+      button.textContent = '設定中…';
+      clearMessageIn('gate');
+
+      Api.settingsInit(hooks.getToken ? hooks.getToken() : '', next.value).then(function (result) {
+        if (!result.ok) {
+          showMessageIn('gate', result.message || '設定できませんでした。', 'error');
+          return;
+        }
+        keepSettingsSession(result.settings_token, result.valid_until);
+        renderSettings();
+      }).catch(function (error) {
+        showMessageIn('gate', '設定できませんでした。' + error.message, 'error');
+      }).then(function () {
+        gateBusy = false;
+        if (button) { button.disabled = false; button.textContent = '設定する'; }
+      });
+      return;
+    }
+
+    var input = document.getElementById('gatePassword');
+    if (!/^[0-9]{4}$/.test(input.value)) {
+      showMessageIn('gate', '設定パスワードは4桁の数字で入力してください。', 'error');
+      input.focus();
+      return;
+    }
+
+    gateBusy = true;
+    button.disabled = true;
+    button.textContent = '確認中…';
+    clearMessageIn('gate');
+
+    Api.settingsUnlock(input.value).then(function (result) {
+      if (!result.ok) {
+        var message = /しばらく/.test(result.message || '')
+          ? '入力回数が多いため、しばらくしてからお試しください'
+          : (result.message || '設定パスワードが違います');
+        showMessageIn('gate', message, 'error');
+        input.value = '';
+        input.focus();
+        return;
+      }
+      keepSettingsSession(result.settings_token, result.valid_until);
+      renderSettings();
+    }).catch(function (error) {
+      showMessageIn('gate', '確認できませんでした。' + error.message, 'error');
+    }).then(function () {
+      gateBusy = false;
+      if (button) { button.disabled = false; button.textContent = '設定を開く'; }
+    });
+  }
+
+  /* ---------------------------------------------------------
      開閉
      --------------------------------------------------------- */
-  function open() {
-    if (isOpen) { return; }
-    lastFocused = document.activeElement;
-    isOpen = true;
-
-    els.modal.hidden = false;
+  /** 設定パスワードの確認が済んでいる場合の本体 */
+  function renderSettings() {
     els.body.innerHTML = bodyHtml();
     bindBody();
 
@@ -529,6 +746,43 @@
     }
     loadStaffList();
     loadAppList();
+  }
+
+  function open() {
+    if (isOpen) { return; }
+    lastFocused = document.activeElement;
+    isOpen = true;
+    els.modal.hidden = false;
+
+    if (!Api.isReady()) {
+      els.body.innerHTML = '<section class="settings-section">' +
+        '<div class="empty"><p class="empty__text">' +
+        'Supabaseに接続できませんでした。通信状態をご確認ください。' +
+        '</p></div></section>';
+      return;
+    }
+
+    // すでに確認済み（30分以内）なら、そのまま設定画面を開く
+    if (settingsToken()) {
+      renderSettings();
+      return;
+    }
+
+    els.body.innerHTML = '<section class="settings-section">' +
+      '<div class="empty"><p class="empty__text">読み込んでいます…</p></div></section>';
+
+    // 設定パスワードが未登録なら、最初の登録画面を出す
+    Api.settingsStatus().then(function (status) {
+      renderGate(status.configured ? 'unlock' : 'init');
+      if (status.configured && status.locked) {
+        showMessageIn('gate', '入力回数が多いため、しばらくしてからお試しください', 'error');
+      }
+    }).catch(function (error) {
+      els.body.innerHTML = '<section class="settings-section">' +
+        '<div class="empty"><p class="empty__text">' +
+        Util.escapeHtml('設定の状態を確認できませんでした。' + error.message) +
+        '</p></div></section>';
+    });
   }
 
   function close() {
