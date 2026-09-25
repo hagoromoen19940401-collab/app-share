@@ -1205,6 +1205,32 @@ svg {
 
 .login-form__actions .button { flex: 1; justify-content: center; }
 
+/* ログイン中の職員の表示 */
+.account-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-sub);
+}
+
+.account-box__body { min-width: 0; }
+
+.account-box__label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-weak);
+}
+
+.account-box__name {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+}
+
 /* 設定画面の2つ目以降の区切り */
 .settings-section--split {
   margin-top: 28px;

@@ -86,6 +86,17 @@
       });
     },
 
+    /** 自分のパスワードを変更。戻り値は { ok, message } */
+    passwordChange: function (token, currentPassword, newPassword) {
+      return rpc('appshare_password_change', {
+        p_token: token,
+        p_current_password: currentPassword,
+        p_new_password: newPassword
+      }).then(function (rows) {
+        return (rows && rows[0]) || { ok: false, message: '変更できませんでした' };
+      });
+    },
+
     /** アプリを登録。戻り値は { ok, message, app_id, app_name } */
     appAdd: function (token, name, url, description) {
       return rpc('appshare_app_add', {

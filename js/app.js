@@ -263,6 +263,7 @@
           return session ? session.token : '';
         },
         onRequireLogin: function () { Auth.open(); },
+        getDisplayName: function () { return Auth.currentName(); },
         onAppsChanged: loadRemoteApps          // 登録したらすぐ左の一覧に反映する
       }
     });

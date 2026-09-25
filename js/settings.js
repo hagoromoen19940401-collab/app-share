@@ -1,11 +1,12 @@
 /* =========================================================
    js/settings.js
-   設定画面（職員管理 / アプリ管理）
+   設定画面（自分のアカウント / 職員管理 / アプリ管理）
 
    ・登録済み職員の一覧表示   … appshare_staff_list()
    ・職員の追加               … appshare_staff_add()
    ・登録済みアプリの一覧表示 … appshare_apps_list(token)
    ・アプリの追加             … appshare_app_add(token, name, url, description)
+   ・自分のパスワード変更     … appshare_password_change(token, 現在, 新しい)
    テーブルへの直接の読み書きは行わない（RPC経由のみ）
    ========================================================= */
 
@@ -23,9 +24,82 @@
   /* ---------------------------------------------------------
      画面の組み立て
      --------------------------------------------------------- */
-  function bodyHtml() {
+  function accountHtml() {
+    var loggedIn = !!(hooks.isLoggedIn && hooks.isLoggedIn());
+    var name = (hooks.getDisplayName && hooks.getDisplayName()) || '';
+
+    if (!loggedIn) {
+      return '' +
+        '<section class="settings-section">' +
+          '<div class="settings-section__head">' +
+            '<div>' +
+              '<h3 class="settings-section__title">自分のアカウント</h3>' +
+              '<p class="settings-section__note">ログインすると、自分のパスワードを変更できます。</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="empty">' +
+            '<p class="empty__text">ログインしていません。</p>' +
+            '<button class="button" type="button" id="accountLoginButton">ログイン</button>' +
+          '</div>' +
+        '</section>';
+    }
+
     return '' +
       '<section class="settings-section">' +
+        '<div class="settings-section__head">' +
+          '<div>' +
+            '<h3 class="settings-section__title">自分のアカウント</h3>' +
+            '<p class="settings-section__note">ログイン中の職員のパスワードを変更できます。</p>' +
+          '</div>' +
+          '<button class="button button--ghost" type="button" id="passwordToggle">' +
+            '<span>パスワード変更</span>' +
+          '</button>' +
+        '</div>' +
+
+        '<div class="account-box">' +
+          '<span class="staff-item__avatar" aria-hidden="true">' + Util.escapeHtml(Util.initial(name)) + '</span>' +
+          '<span class="account-box__body">' +
+            '<span class="account-box__label">ログイン中</span>' +
+            '<span class="account-box__name">' + Util.escapeHtml(name) + '</span>' +
+          '</span>' +
+        '</div>' +
+
+        '<div class="staff-form" id="passwordFormArea" hidden>' +
+          '<div class="field">' +
+            '<label class="field__label" for="currentPassword">現在のパスワード</label>' +
+            '<input class="field__input field__input--short" id="currentPassword" type="password" ' +
+                   'inputmode="numeric" maxlength="4" autocomplete="current-password" placeholder="••••">' +
+          '</div>' +
+          '<div class="field">' +
+            '<label class="field__label" for="newPassword">新しいパスワード</label>' +
+            '<input class="field__input field__input--short" id="newPassword" type="password" ' +
+                   'inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••">' +
+            '<p class="field__hint">4桁の数字で入力してください。</p>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label class="field__label" for="newPasswordConfirm">新しいパスワード（確認）</label>' +
+            '<input class="field__input field__input--short" id="newPasswordConfirm" type="password" ' +
+                   'inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••">' +
+          '</div>' +
+          '<div class="staff-form__actions">' +
+            '<button class="button" type="button" id="passwordSubmit">変更する</button>' +
+            '<button class="button button--quiet" type="button" id="passwordCancel">閉じる</button>' +
+          '</div>' +
+          '<p class="field__hint">変更すると、他の端末では改めてログインが必要になります。' +
+            'この端末はそのまま使えます。</p>' +
+        '</div>' +
+
+        '<div class="inline-notice" id="passwordMessage" hidden>' +
+          '<span class="inline-notice__icon" aria-hidden="true" id="passwordMessageIcon"></span>' +
+          '<span id="passwordMessageText"></span>' +
+        '</div>' +
+      '</section>';
+  }
+
+  function bodyHtml() {
+    return '' +
+      accountHtml() +
+      '<section class="settings-section settings-section--split">' +
         '<div class="settings-section__head">' +
           '<div>' +
             '<h3 class="settings-section__title">職員管理</h3>' +
@@ -244,6 +318,71 @@
   }
 
   /* ---------------------------------------------------------
+     自分のアカウント（パスワード変更）
+     --------------------------------------------------------- */
+  function togglePasswordForm(show) {
+    var area = document.getElementById('passwordFormArea');
+    if (!area) { return; }
+    area.hidden = !show;
+    if (show) {
+      clearMessageIn('password');
+      document.getElementById('currentPassword').focus();
+    }
+  }
+
+  function clearPasswordInputs() {
+    ['currentPassword', 'newPassword', 'newPasswordConfirm'].forEach(function (id) {
+      var input = document.getElementById(id);
+      if (input) { input.value = ''; }
+    });
+  }
+
+  function submitPassword() {
+    var current = document.getElementById('currentPassword');
+    var next    = document.getElementById('newPassword');
+    var confirm = document.getElementById('newPasswordConfirm');
+    var button  = document.getElementById('passwordSubmit');
+    if (!current || !next || !confirm) { return; }
+
+    // 画面側でも先に確認する（保存時の判定はSupabase側でも行う）
+    if (!/^[0-9]{4}$/.test(current.value)) {
+      showMessageIn('password', '現在のパスワードを4桁の数字で入力してください。', 'error');
+      current.focus();
+      return;
+    }
+    if (!/^[0-9]{4}$/.test(next.value)) {
+      showMessageIn('password', '新しいパスワードは4桁の数字で入力してください。', 'error');
+      next.focus();
+      return;
+    }
+    if (next.value !== confirm.value) {
+      showMessageIn('password', '新しいパスワードが一致しません', 'error');
+      confirm.value = '';
+      confirm.focus();
+      return;                                  // ここではRPCを呼ばない
+    }
+
+    button.disabled = true;
+    button.textContent = '変更中…';
+    clearMessageIn('password');
+
+    Api.passwordChange(hooks.getToken(), current.value, next.value).then(function (result) {
+      if (!result.ok) {
+        showMessageIn('password', result.message || '変更できませんでした。', 'error');
+        return;
+      }
+      showMessageIn('password', 'パスワードを変更しました', 'ok');
+      clearPasswordInputs();
+      current.focus();
+    }).catch(function (error) {
+      showMessageIn('password', '変更できませんでした。' + error.message, 'error');
+    }).then(function () {
+      button.disabled = false;
+      button.textContent = '変更する';
+    });
+  }
+
+  /* ---------------------------------------------------------
      アプリ管理
      --------------------------------------------------------- */
   function renderAppList(rows) {
@@ -401,6 +540,42 @@
   }
 
   function bindBody() {
+    // --- 自分のアカウント ---
+    var accountLogin = document.getElementById('accountLoginButton');
+    if (accountLogin) {
+      accountLogin.addEventListener('click', function () {
+        close();
+        if (hooks.onRequireLogin) { hooks.onRequireLogin(); }
+      });
+    }
+
+    var passwordToggle = document.getElementById('passwordToggle');
+    if (passwordToggle) {
+      passwordToggle.addEventListener('click', function () {
+        var area = document.getElementById('passwordFormArea');
+        togglePasswordForm(area.hidden);
+      });
+      document.getElementById('passwordCancel').addEventListener('click', function () {
+        togglePasswordForm(false);
+      });
+      document.getElementById('passwordSubmit').addEventListener('click', submitPassword);
+
+      // 数字だけにする。Enterでも変更できるようにする
+      ['currentPassword', 'newPassword', 'newPasswordConfirm'].forEach(function (id) {
+        var input = document.getElementById(id);
+        input.addEventListener('input', function () {
+          input.value = input.value.replace(/[^0-9]/g, '').slice(0, 4);
+        });
+        input.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            submitPassword();
+          }
+        });
+      });
+    }
+
+    // --- 職員管理 ---
     document.getElementById('staffAddToggle').addEventListener('click', function () {
       var area = document.getElementById('staffFormArea');
       toggleForm(area.hidden);
