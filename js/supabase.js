@@ -122,16 +122,21 @@
     },
 
     /**
-     * 写真つきコメントの投稿。
-     * 投稿者名と staff_id はブラウザから送らない（サーバー側で決まる）
+     * 写真つきコメントの投稿（最大4枚）。
+     * 投稿者名・staff_id・表示順はブラウザから送らない（サーバー側で決まる）。
+     * 写真は渡した順に 0, 1, 2, 3 として保存される。
      */
-    imageUpload: function (token, appId, body, blob) {
+    imageUpload: function (token, appId, body, blobs) {
+      var list = [].concat(blobs || []);
       var form = new FormData();
       form.append('action', 'upload');
       form.append('token', token);
       form.append('app_id', appId);
       form.append('body', body || '');
-      form.append('file', blob, 'photo.jpg');
+
+      list.forEach(function (blob, index) {
+        form.append('file', blob, 'photo-' + index + '.jpg');
+      });
 
       return fetch(IMAGE_FUNCTION_URL, { method: 'POST', body: form })
         .then(readFunctionResponse);
@@ -142,9 +147,10 @@
       return callImageFunction({ action: 'view', token: token, path: path });
     },
 
-    /** 使われていない写真をStorageから削除する */
-    imageDelete: function (token, path) {
-      return callImageFunction({ action: 'delete-object', token: token, path: path });
+    /** 使われていない写真をStorageから削除する（1枚でも複数枚でも） */
+    imageDelete: function (token, paths) {
+      var list = [].concat(paths || []);
+      return callImageFunction({ action: 'delete-object', token: token, paths: list });
     },
 
     /** アプリを登録。戻り値は { ok, message, app_id, app_name } */

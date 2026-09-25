@@ -912,9 +912,18 @@ svg {
 }
 
 /* コメントに添付された写真 */
+.comment__images { margin-top: 8px; }
+
+/* 2枚以上は2列に並べる */
+.comment__images--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  max-width: 320px;
+}
+
 .comment__image-button {
   display: block;
-  margin-top: 8px;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -922,8 +931,9 @@ svg {
   cursor: zoom-in;
   overflow: hidden;
   line-height: 0;
-  max-width: 260px;
 }
+
+.comment__images--single .comment__image-button { max-width: 260px; }
 
 .comment__image-button:hover { border-color: var(--line-strong); }
 
@@ -935,6 +945,15 @@ svg {
   max-height: 200px;          /* 縦写真でも大きくなりすぎないようにする */
   object-fit: contain;
   background: var(--surface-sub);
+}
+
+/* 並べたときは正方形に切り取って見た目を揃える（拡大表示では全体が見えます） */
+.comment__images--grid .comment__image {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
 }
 
 /* 編集中の入力欄 */
@@ -1061,11 +1080,8 @@ svg {
 }
 
 .composer__preview {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   margin-bottom: 10px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   background: var(--surface);
@@ -1073,45 +1089,65 @@ svg {
 
 .composer__preview[hidden] { display: none; }
 
-.composer__preview-image {
-  width: 56px;
-  height: 56px;
-  flex: none;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  background: var(--surface-sub);
+.composer__preview-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
 }
-
-.composer__preview-body { flex: 1; min-width: 0; }
 
 .composer__preview-title {
-  display: block;
-  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
   font-weight: 600;
+  color: var(--text-sub);
 }
 
-.composer__preview-size {
-  display: block;
-  font-size: 11.5px;
-  color: var(--text-weak);
+.composer__preview-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 280px;
 }
+
+.composer__preview-list--single { max-width: 150px; grid-template-columns: 1fr; }
+
+.composer__preview-item {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-sub);
+  line-height: 0;
+}
+
+.composer__preview-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.composer__preview-list--single .composer__preview-image { aspect-ratio: 4 / 3; }
 
 .composer__preview-remove {
-  flex: none;
-  width: 30px;
-  height: 30px;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 7px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-sub);
+  padding: 5px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(23, 33, 41, 0.72);
+  color: #fff;
   cursor: pointer;
 }
 
-.composer__preview-remove:hover { background: var(--surface-sub); color: var(--text); }
+.composer__preview-remove:hover { background: rgba(23, 33, 41, 0.88); }
 
 .composer__send {
   flex: none;
@@ -1484,6 +1520,41 @@ svg {
 
 .lightbox__close:hover { background: rgba(255, 255, 255, 0.22); }
 
+.lightbox__nav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.lightbox__arrow {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+
+.lightbox__arrow:hover { background: rgba(255, 255, 255, 0.24); }
+
+.lightbox__count {
+  min-width: 62px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
 /* ---------- トースト通知 ---------- */
 .toast-area {
   position: fixed;
@@ -1568,11 +1639,14 @@ svg {
   .workbar { padding: 11px 16px 0; }
   .tab { padding: 9px 11px 11px; font-size: 13.5px; }
   .file-row { padding: 12px 13px; gap: 10px; }
-  .comment__image-button { max-width: 100%; }
+  .comment__images--single .comment__image-button { max-width: 100%; }
+  .comment__images--grid { max-width: 100%; }
   .comment__image { max-height: 240px; }
+  .composer__preview-list { max-width: 100%; }
   .lightbox { padding: 12px; }
-  .lightbox__image { max-height: calc(100vh - 80px); }
+  .lightbox__image { max-height: calc(100vh - 140px); }
   .lightbox__close { top: -42px; }
+  .lightbox__nav { bottom: -46px; }
   .detail, .panel, .comments { border-radius: var(--radius); }
   .detail__name { font-size: 19px; }
 }

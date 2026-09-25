@@ -9,15 +9,16 @@
 // リポジトリにもブラウザにも含まれない。
 //
 // 受け付ける操作
-//   upload         写真を保存し、コメントを作る
+//   upload         写真（最大4枚）を保存し、コメントを作る
 //   view           表示用の期限つきURLを発行する
-//   delete-object  どこからも使われていない写真を消す
+//   delete-object  どこからも使われていない写真を消す（複数可）
 // =========================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.1";
 
 const BUCKET = "appshare-chat-images";
-const MAX_BYTES = 3 * 1024 * 1024;                       // 3MB
+const MAX_BYTES = 3 * 1024 * 1024;                       // 1枚あたり3MB
+const MAX_FILES = 4;                                     // 1コメントにつき4枚まで
 const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
 const SIGNED_URL_SECONDS = 600;                          // 10分
 
@@ -60,7 +61,17 @@ async function staffIdFromToken(token: unknown): Promise<string | null> {
   return data;
 }
 
-/** 写真を保存してコメントを作る */
+/** 途中で失敗したときに、置いた写真をまとめて片付ける */
+async function cleanUp(paths: string[]) {
+  if (paths.length === 0) return;
+  try {
+    await admin.storage.from(BUCKET).remove(paths);
+  } catch (_error) {
+    // 片付けに失敗しても、呼び出し元へは本来のエラーを返す
+  }
+}
+
+/** 写真（最大4枚）を保存してコメントを作る */
 async function handleUpload(form: FormData) {
   const token = form.get("token");
   const staffId = await staffIdFromToken(token);
@@ -68,41 +79,56 @@ async function handleUpload(form: FormData) {
 
   const appId = String(form.get("app_id") ?? "").trim();
   const body = String(form.get("body") ?? "");
-  const file = form.get("file");
-
   if (!appId) return json({ ok: false, message: "アプリが指定されていません" }, 400);
-  if (!(file instanceof File)) return json({ ok: false, message: "写真が選ばれていません" }, 400);
-  if (!ALLOWED.includes(file.type)) {
-    return json({ ok: false, message: "対応していない画像の種類です" }, 400);
+
+  // file を複数受け取る（file が1つだけでも同じ扱い）
+  const files = form.getAll("file").filter((item): item is File => item instanceof File);
+
+  if (files.length === 0) return json({ ok: false, message: "写真が選ばれていません" }, 400);
+  if (files.length > MAX_FILES) {
+    return json({ ok: false, message: `写真は1コメントにつき${MAX_FILES}枚までです` }, 400);
   }
-  if (file.size <= 0 || file.size > MAX_BYTES) {
-    return json({ ok: false, message: "写真の大きさが上限を超えています（3MBまで）" }, 400);
+
+  for (const file of files) {
+    if (!ALLOWED.includes(file.type)) {
+      return json({ ok: false, message: "対応していない画像の種類です" }, 400);
+    }
+    if (file.size <= 0 || file.size > MAX_BYTES) {
+      return json({ ok: false, message: "写真の大きさが上限を超えています（3MBまで）" }, 400);
+    }
   }
 
   // 置き場所は職員IDのフォルダに固定する（ブラウザからは指定できない）
-  const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-  const path = `${staffId}/${crypto.randomUUID()}.${ext}`;
+  const uploaded: { path: string; mime: string; size: number }[] = [];
 
-  const up = await admin.storage.from(BUCKET).upload(path, file, {
-    contentType: file.type,
-    upsert: false,
-  });
-  if (up.error) {
-    return json({ ok: false, message: "写真を保存できませんでした" }, 500);
+  for (const file of files) {
+    const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const path = `${staffId}/${crypto.randomUUID()}.${ext}`;
+
+    const up = await admin.storage.from(BUCKET).upload(path, file, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+    if (up.error) {
+      // 1枚でも失敗したら、ここまでに置いた写真をすべて消す
+      await cleanUp(uploaded.map((item) => item.path));
+      return json({ ok: false, message: "写真を保存できませんでした" }, 500);
+    }
+
+    uploaded.push({ path, mime: file.type, size: file.size });
   }
 
-  // コメントを作る。失敗したら、置いた写真を消して元に戻す
-  const { data, error } = await admin.rpc("appshare_comment_add_image", {
+  // コメントを作る。失敗したら、置いた写真をすべて消して元に戻す
+  const { data, error } = await admin.rpc("appshare_comment_add_images", {
     p_token: token,
     p_app_id: appId,
     p_body: body,
-    p_image_path: path,
-    p_image_mime: file.type,
-    p_image_size: file.size,
+    p_images: uploaded,
   });
 
   if (error) {
-    await admin.storage.from(BUCKET).remove([path]);
+    await cleanUp(uploaded.map((item) => item.path));
     return json({ ok: false, message: error.message ?? "コメントを保存できませんでした" }, 400);
   }
 
@@ -131,25 +157,42 @@ async function handleView(payload: Record<string, unknown>) {
   return json({ ok: true, url: data.signedUrl, expires_in: SIGNED_URL_SECONDS });
 }
 
-/** どこからも使われていない写真を消す */
+/** どこからも使われていない写真を消す（1枚でも複数枚でも） */
 async function handleDeleteObject(payload: Record<string, unknown>) {
   const staffId = await staffIdFromToken(payload.token);
   if (!staffId) return json({ ok: false, message: "ログインが必要です" }, 401);
 
-  const path = String(payload.path ?? "");
-  if (!path) return json({ ok: false, message: "写真が指定されていません" }, 400);
+  const list = Array.isArray(payload.paths)
+    ? payload.paths.map((item) => String(item ?? ""))
+    : [String(payload.path ?? "")];
 
-  // まだコメントから使われている写真は消さない
-  const used = await admin.rpc("appshare_image_in_use", { p_image_path: path });
-  if (used.error) return json({ ok: false, message: "確認できませんでした" }, 500);
-  if (used.data === true) {
+  const paths = list.filter((item) => item.length > 0);
+  if (paths.length === 0) return json({ ok: false, message: "写真が指定されていません" }, 400);
+  if (paths.length > MAX_FILES) {
+    return json({ ok: false, message: "一度に削除できるのは4枚までです" }, 400);
+  }
+
+  const removable: string[] = [];
+  const skipped: string[] = [];
+
+  for (const path of paths) {
+    // まだコメントから使われている写真は消さない
+    const used = await admin.rpc("appshare_image_in_use", { p_image_path: path });
+    if (used.error) return json({ ok: false, message: "確認できませんでした" }, 500);
+    if (used.data === true) { skipped.push(path); continue; }
+    removable.push(path);
+  }
+
+  if (removable.length > 0) {
+    const { error } = await admin.storage.from(BUCKET).remove(removable);
+    if (error) return json({ ok: false, message: "写真を削除できませんでした" }, 500);
+  }
+
+  if (removable.length === 0 && skipped.length > 0) {
     return json({ ok: false, message: "この写真はまだ使われています" }, 409);
   }
 
-  const { error } = await admin.storage.from(BUCKET).remove([path]);
-  if (error) return json({ ok: false, message: "写真を削除できませんでした" }, 500);
-
-  return json({ ok: true });
+  return json({ ok: true, removed: removable.length, skipped: skipped.length });
 }
 
 Deno.serve(async (req) => {
