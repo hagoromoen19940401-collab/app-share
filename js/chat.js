@@ -18,6 +18,12 @@
   var POLL_INTERVAL = 5000;   // 5秒
   var FETCH_LIMIT   = 200;
 
+  // 写真の縮小・圧縮の目安
+  var IMAGE_MAX_EDGE  = 1600;        // 長辺
+  var IMAGE_QUALITY   = 0.8;
+  var IMAGE_MAX_BYTES = 3 * 1024 * 1024;
+  var URL_MARGIN_MS   = 60 * 1000;   // 署名URLは期限の1分前に取り直す
+
   /* ---------------------------------------------------------
      共通ユーティリティ（他のファイルからも使用）
      --------------------------------------------------------- */
@@ -125,6 +131,11 @@
   var postError  = '';
   var signature  = '';        // 表示中の内容。変わらなければ描画し直さない
 
+  var pendingImage = null;    // 送信前に選んでいる写真 { blob, previewUrl, size }
+  var imageUrls    = {};      // 画像パス -> { url, expiresAt }
+  var imageLoading = {};      // 取得中の画像パス
+  var lightboxPath = null;    // 拡大表示している画像
+
   var editingId    = null;    // 編集中のコメント
   var editingDraft = '';      // 編集中の本文（再描画で消えないよう保持する）
   var deletingId   = null;    // 削除の確認を表示しているコメント
@@ -138,6 +149,155 @@
 
   function isAuthError(error) {
     return !!error && /ログインが必要です/.test(error.message || '');
+  }
+
+  /* ---------------------------------------------------------
+     写真の縮小・圧縮
+     元画像は送らず、長辺1600px・JPEG・品質0.8を目安に小さくする。
+     3MBを超える場合は品質と大きさを少しずつ下げる。
+     --------------------------------------------------------- */
+  function loadImageElement(file) {
+    return new Promise(function (resolve, reject) {
+      var objectUrl = global.URL.createObjectURL(file);
+      var image = new global.Image();
+
+      image.onload = function () {
+        global.URL.revokeObjectURL(objectUrl);
+        resolve(image);
+      };
+      image.onerror = function () {
+        global.URL.revokeObjectURL(objectUrl);
+        reject(new Error('写真を読み込めませんでした'));
+      };
+      image.src = objectUrl;
+    });
+  }
+
+  function drawToBlob(image, maxEdge, quality) {
+    return new Promise(function (resolve, reject) {
+      var width  = image.naturalWidth  || image.width;
+      var height = image.naturalHeight || image.height;
+      if (!width || !height) { reject(new Error('写真を読み込めませんでした')); return; }
+
+      var scale = Math.min(1, maxEdge / Math.max(width, height));
+      var canvas = document.createElement('canvas');
+      canvas.width  = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+
+      var context = canvas.getContext('2d');
+      if (!context) { reject(new Error('写真を処理できませんでした')); return; }
+
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(function (blob) {
+        if (blob) { resolve(blob); } else { reject(new Error('写真を処理できませんでした')); }
+      }, 'image/jpeg', quality);
+    });
+  }
+
+  function compressImage(file) {
+    // 3MB以下になるまで、品質と大きさを段階的に下げる
+    var steps = [
+      { edge: IMAGE_MAX_EDGE, quality: IMAGE_QUALITY },
+      { edge: IMAGE_MAX_EDGE, quality: 0.7 },
+      { edge: 1280,           quality: 0.7 },
+      { edge: 1280,           quality: 0.6 },
+      { edge: 1000,           quality: 0.6 },
+      { edge: 800,            quality: 0.5 }
+    ];
+
+    return loadImageElement(file).then(function (image) {
+      var index = 0;
+
+      function attempt() {
+        if (index >= steps.length) {
+          throw new Error('写真を処理できませんでした');
+        }
+        var step = steps[index++];
+        return drawToBlob(image, step.edge, step.quality).then(function (blob) {
+          if (blob.size <= IMAGE_MAX_BYTES) { return blob; }
+          return attempt();
+        });
+      }
+
+      return attempt();
+    });
+  }
+
+  /* ---------------------------------------------------------
+     署名つきURLの管理
+     10分で切れるため、期限の1分前で取り直す。
+     一度取得したURLは短時間だけ覚えておき、
+     5秒ごとの再取得では取り直さない。
+     --------------------------------------------------------- */
+  function cachedUrl(path) {
+    var entry = imageUrls[path];
+    if (!entry) { return null; }
+    if (entry.expiresAt - URL_MARGIN_MS <= Date.now()) { return null; }
+    return entry.url;
+  }
+
+  function fetchImageUrl(path) {
+    if (imageLoading[path]) { return imageLoading[path]; }
+
+    var request = global.AppShareSupabase.imageViewUrl(token(), path)
+      .then(function (result) {
+        var seconds = result.expires_in || 600;
+        imageUrls[path] = {
+          url: result.url,
+          expiresAt: Date.now() + seconds * 1000
+        };
+        delete imageLoading[path];
+        return result.url;
+      })
+      .catch(function (error) {
+        delete imageLoading[path];
+        throw error;
+      });
+
+    imageLoading[path] = request;
+    return request;
+  }
+
+  /** 表示用のURLを返す（キャッシュがあればそれを使う） */
+  function imageUrl(path) {
+    var cached = cachedUrl(path);
+    if (cached) { return Promise.resolve(cached); }
+    return fetchImageUrl(path);
+  }
+
+  /** 画面にある <img data-path> へURLを流し込む */
+  function hydrateImages(root) {
+    if (!root || !root.querySelectorAll) { return; }
+
+    var images = root.querySelectorAll('img[data-path]');
+    Array.prototype.forEach.call(images, function (element) {
+      var path = element.getAttribute('data-path');
+      if (!path || element.getAttribute('data-loaded') === path) { return; }
+
+      imageUrl(path).then(function (url) {
+        element.setAttribute('data-loaded', path);
+        element.src = url;
+      }).catch(function () {
+        element.setAttribute('data-failed', '1');
+      });
+    });
+  }
+
+  /** 画像の読み込みに失敗したら、URLを取り直して1回だけやり直す */
+  function handleImageError(event) {
+    var element = event.target;
+    if (!element || element.tagName !== 'IMG') { return; }
+
+    var path = element.getAttribute('data-path');
+    if (!path || element.getAttribute('data-retried') === '1') { return; }
+
+    element.setAttribute('data-retried', '1');
+    delete imageUrls[path];
+
+    fetchImageUrl(path).then(function (url) {
+      element.src = url;
+    }).catch(function () { /* 表示できないままにする */ });
   }
 
   /* ---------------------------------------------------------
@@ -180,10 +340,23 @@
     }).join('') + '</ul>';
   }
 
+  /** 添付された写真（サムネイル） */
+  function imageHtml(comment) {
+    if (!comment.image_path) { return ''; }
+    var path = Util.escapeHtml(comment.image_path);
+    return '' +
+      '<button class="comment__image-button" type="button" ' +
+              'data-action="image" data-path="' + path + '" aria-label="写真を大きく表示">' +
+        '<img class="comment__image" data-path="' + path + '" alt="添付された写真">' +
+      '</button>';
+  }
+
   function actionsHtml(comment) {
     var id = Util.escapeHtml(comment.id);
     var busy = busyId === comment.id;
     var buttons = '';
+    // 写真だけの投稿は本文がないため「編集」を出さない
+    var canEdit = !!(comment.body && comment.body.length);
 
     if (comment.is_mine) {
       // 自分の投稿 … 編集と削除
@@ -196,7 +369,9 @@
           '<button class="comment__action" type="button" data-action="delete-no" data-id="' + id + '">キャンセル</button>';
       } else {
         buttons =
-          '<button class="comment__action" type="button" data-action="edit" data-id="' + id + '">編集</button>' +
+          (canEdit
+            ? '<button class="comment__action" type="button" data-action="edit" data-id="' + id + '">編集</button>'
+            : '') +
           '<button class="comment__action" type="button" data-action="delete" data-id="' + id + '">削除</button>';
       }
     } else if (comment.confirmed_by_me) {
@@ -235,9 +410,13 @@
     var error = (actionError && actionError.id === comment.id)
       ? '<p class="comment__error">' + Util.escapeHtml(actionError.message) + '</p>' : '';
 
+    var text = (comment.body && comment.body.length)
+      ? '<p class="comment__text">' + Util.escapeHtml(comment.body) + '</p>'
+      : '';
+
     var main = (editingId === comment.id)
       ? editorHtml(comment)
-      : '<p class="comment__text">' + Util.escapeHtml(comment.body) + '</p>' + actionsHtml(comment);
+      : text + imageHtml(comment) + actionsHtml(comment);
 
     return '' +
       '<article class="comment' + (comment.is_mine ? ' comment--mine' : '') + '">' +
@@ -298,7 +477,7 @@
       actionError ? actionError.id + actionError.message : '',
       rows.map(function (row) {
         return [row.id, row.edited_at || '', row.confirm_count || 0,
-                row.confirmed_by_me ? 1 : 0].join(':');
+                row.confirmed_by_me ? 1 : 0, row.image_path || ''].join(':');
       }).join(',')
     ].join('|');
   }
@@ -332,6 +511,8 @@
         '<span class="comments__count">' + (isLoggedIn() ? rows.length + '件' : '') + '</span>' +
       '</div>' + body;
 
+    hydrateImages(els.listEl);
+
     if (keepBottom && rows.length) { scrollToBottom(); }
 
     // 編集を開始した直後は入力欄へカーソルを移す
@@ -351,22 +532,60 @@
   /* ---------------------------------------------------------
      入力欄
      --------------------------------------------------------- */
+  var ICON_PHOTO = '<svg viewBox="0 0 24 24"><path d="M4 5.5h16v13H4z"/><path d="M4 15l4.5-4 4 3.5 3-2.5L20 16"/><path d="M9 9.8v.2"/></svg>';
+
   function renderComposer() {
     els.composerEl.innerHTML = '' +
       '<div class="composer__error inline-notice inline-notice--tight" id="composerError" hidden>' +
         '<span class="inline-notice__icon" aria-hidden="true">' + ICON_ALERT + '</span>' +
         '<span id="composerErrorText"></span>' +
       '</div>' +
+
+      '<div class="composer__preview" id="composerPreview" hidden>' +
+        '<img class="composer__preview-image" id="composerPreviewImage" alt="選択した写真">' +
+        '<span class="composer__preview-body">' +
+          '<span class="composer__preview-title">写真を1枚添付します</span>' +
+          '<span class="composer__preview-size" id="composerPreviewSize"></span>' +
+        '</span>' +
+        '<button class="composer__preview-remove" type="button" id="photoRemove" aria-label="写真を取り消す">' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>' +
+        '</button>' +
+      '</div>' +
+
       '<div class="composer__box" id="composerBox">' +
+        '<button class="composer__photo" id="photoButton" type="button" aria-label="写真を追加">' +
+          ICON_PHOTO +
+        '</button>' +
         '<textarea class="composer__input" id="commentInput" rows="1" wrap="soft" ' +
           'placeholder="このアプリについてのコメントを入力" aria-label="コメント本文"></textarea>' +
         '<button class="button composer__send" id="commentSend" type="button" disabled>送信</button>' +
       '</div>' +
+
+      '<input class="composer__file" id="photoInput" type="file" accept="image/*" ' +
+             'aria-label="写真を選ぶ">' +
+
       '<p class="composer__hint" id="composerHint">コメントは職員全員に共有されます（Command + Enter でも送信できます）。</p>';
 
     var box   = document.getElementById('composerBox');
     var input = document.getElementById('commentInput');
     var send  = document.getElementById('commentSend');
+
+    // --- 写真を選ぶ ---
+    var photoButton = document.getElementById('photoButton');
+    var photoInput  = document.getElementById('photoInput');
+
+    photoButton.addEventListener('click', function () {
+      if (!isLoggedIn() || isPosting) { return; }
+      photoInput.click();
+    });
+
+    photoInput.addEventListener('change', function () {
+      var file = photoInput.files && photoInput.files[0];
+      photoInput.value = '';                        // 同じ写真を選び直せるようにする
+      if (file) { choosePhoto(file); }
+    });
+
+    document.getElementById('photoRemove').addEventListener('click', clearPendingImage);
 
     function autoResize() {
       input.style.height = 'auto';
@@ -374,7 +593,8 @@
     }
 
     function updateSendState() {
-      send.disabled = isPosting || !isLoggedIn() || input.value.trim() === '';
+      var hasContent = input.value.trim() !== '' || !!pendingImage;
+      send.disabled = isPosting || !isLoggedIn() || !hasContent;
     }
 
     input.addEventListener('input', function () {
@@ -395,6 +615,64 @@
     els.composerEl.updateSendState = updateSendState;
   }
 
+  /** 送信前の写真を表示に反映する */
+  function renderPendingImage() {
+    var box   = document.getElementById('composerPreview');
+    var image = document.getElementById('composerPreviewImage');
+    var size  = document.getElementById('composerPreviewSize');
+    if (!box) { return; }
+
+    if (!pendingImage) {
+      box.hidden = true;
+      if (image) { image.removeAttribute('src'); }
+      return;
+    }
+
+    image.src = pendingImage.previewUrl;
+    size.textContent = Math.round(pendingImage.size / 1024) + ' KB に圧縮しました';
+    box.hidden = false;
+  }
+
+  function clearPendingImage() {
+    if (pendingImage && pendingImage.previewUrl) {
+      global.URL.revokeObjectURL(pendingImage.previewUrl);
+    }
+    pendingImage = null;
+    renderPendingImage();
+    updateComposerState();
+  }
+
+  /** 写真を選んだときの処理（縮小・圧縮してからプレビュー） */
+  function choosePhoto(file) {
+    if (!isLoggedIn()) {
+      if (hooks.onRequireLogin) { hooks.onRequireLogin(); }
+      return;
+    }
+    if (!/^image\//.test(file.type || '')) {
+      showPostError('画像ファイルを選んでください。');
+      return;
+    }
+
+    showPostError('');
+    var photoButton = document.getElementById('photoButton');
+    if (photoButton) { photoButton.disabled = true; }
+
+    compressImage(file).then(function (blob) {
+      clearPendingImage();
+      pendingImage = {
+        blob: blob,
+        size: blob.size,
+        previewUrl: global.URL.createObjectURL(blob)
+      };
+      renderPendingImage();
+      updateComposerState();
+    }).catch(function () {
+      showPostError('写真を処理できませんでした');
+    }).then(function () {
+      if (photoButton) { photoButton.disabled = false; }
+    });
+  }
+
   function updateComposerState() {
     var input = document.getElementById('commentInput');
     var send  = document.getElementById('commentSend');
@@ -402,11 +680,15 @@
     if (!input || !send) { return; }
 
     var loggedIn = isLoggedIn();
+    var photoButton = document.getElementById('photoButton');
+    if (photoButton) { photoButton.disabled = !loggedIn || isPosting; }
+
     input.disabled = !loggedIn || isPosting;
     input.placeholder = loggedIn
       ? 'このアプリについてのコメントを入力'
       : 'ログインするとコメントを投稿できます';
-    send.disabled = isPosting || !loggedIn || input.value.trim() === '';
+    var hasContent = input.value.trim() !== '' || !!pendingImage;
+    send.disabled = isPosting || !loggedIn || !hasContent;
     send.textContent = isPosting ? '送信中…' : '送信';
 
     if (hint) {
@@ -465,10 +747,13 @@
      --------------------------------------------------------- */
   function submit() {
     var input = document.getElementById('commentInput');
-    if (!input) { return; }
+    if (!input || isPosting) { return; }
 
     var text = input.value.trim();
-    if (!text) { return; }
+    var hasImage = !!pendingImage;
+
+    // 文章も写真もない場合は送信しない
+    if (!text && !hasImage) { return; }
 
     if (!isLoggedIn()) {
       showPostError('コメントを投稿するにはログインしてください。');
@@ -481,30 +766,21 @@
     showPostError('');
     updateComposerState();
 
-    // 投稿者名・日時・状態はSupabase側で決まる
-    global.AppShareSupabase.rpc('appshare_comment_add', {
-      p_token:  token(),
-      p_app_id: appId,
-      p_body:   text
-    }).then(function (rows) {
-      var row = rows && rows[0];
-      if (!row) { throw new Error('保存結果を受け取れませんでした'); }
+    // 写真があるときは Edge Function 経由。ないときは従来どおりRPC。
+    // どちらも投稿者名・staff_id・日時はサーバー側で決まる。
+    var posting = hasImage
+      ? global.AppShareSupabase.imageUpload(token(), appId, text, pendingImage.blob)
+      : global.AppShareSupabase.rpc('appshare_comment_add', {
+          p_token:  token(),
+          p_app_id: appId,
+          p_body:   text
+        });
 
-      cache[appId] = (cache[appId] || []).filter(function (item) {
-        return item.id !== row.id;               // 念のため重複を避ける
-      }).concat([row]);
-      counts[appId]     = cache[appId].length;
-      loadedOnce[appId] = true;
-      listError = '';
-
+    posting.then(function () {
       input.value = '';
       if (els.composerEl.autoResize) { els.composerEl.autoResize(); }
-
-      if (appId === currentAppId) {
-        renderList(true);
-        scrollToBottom();
-      }
-      if (hooks.onCountsChanged) { hooks.onCountsChanged(); }
+      clearPendingImage();
+      listError = '';
 
       // 確認状況などの項目を揃えるため、取得し直す
       return fetchComments(true).then(scrollToBottom);
@@ -514,8 +790,9 @@
         if (hooks.onSessionExpired) { hooks.onSessionExpired(); }
         return;
       }
-      // 端末ごとに内容が食い違わないよう、失敗した投稿は端末内に保存しない
-      showPostError('コメントを送信できませんでした。' + (error.message || ''));
+      // 失敗した投稿は端末内に保存しない。入力中の文章と写真はそのまま残す。
+      showPostError((hasImage ? '写真を送信できませんでした。' : 'コメントを送信できませんでした。') +
+                    (error.message || ''));
     }).then(function () {
       isPosting = false;
       updateComposerState();
@@ -632,7 +909,24 @@
       deletingId = null;
       if (openReadsId === commentId) { openReadsId = null; }
       delete readsCache[commentId];
-      return fetchComments(true);
+
+      // 写真つきだった場合は、Storageの写真も削除する
+      var removal = Promise.resolve();
+      if (result.image_path) {
+        delete imageUrls[result.image_path];
+        removal = global.AppShareSupabase.imageDelete(token(), result.image_path)
+          .catch(function (error) {
+            // コメントは消えているので戻さない。記録と表示だけ行う。
+            if (global.console && global.console.warn) {
+              global.console.warn('写真を削除できませんでした', result.image_path, error);
+            }
+            if (hooks.onError) {
+              hooks.onError('コメントは削除しましたが、写真の削除に失敗しました。');
+            }
+          });
+      }
+
+      return removal.then(function () { return fetchComments(true); });
     }).catch(function (error) {
       if (isAuthError(error)) { handleAuthLost(); return; }
       setActionError(commentId, 'コメントを削除できませんでした。' + (error.message || ''));
@@ -696,6 +990,43 @@
     });
   }
 
+  /* ---------------------------------------------------------
+     写真の拡大表示
+     --------------------------------------------------------- */
+  function renderLightbox() {
+    if (!els.lightboxEl) { return; }
+
+    if (!lightboxPath) {
+      els.lightboxEl.hidden = true;
+      els.lightboxEl.innerHTML = '';
+      return;
+    }
+
+    els.lightboxEl.innerHTML = '' +
+      '<div class="lightbox__scrim" data-close-image></div>' +
+      '<div class="lightbox__panel" role="dialog" aria-modal="true" aria-label="写真">' +
+        '<button class="icon-button lightbox__close" type="button" data-close-image aria-label="閉じる">' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>' +
+        '</button>' +
+        '<img class="lightbox__image" id="lightboxImage" ' +
+             'data-path="' + Util.escapeHtml(lightboxPath) + '" alt="添付された写真">' +
+      '</div>';
+
+    els.lightboxEl.hidden = false;
+    hydrateImages(els.lightboxEl);
+  }
+
+  function openLightbox(path) {
+    lightboxPath = path;
+    renderLightbox();
+  }
+
+  function closeLightbox() {
+    if (!lightboxPath) { return; }
+    lightboxPath = null;
+    renderLightbox();
+  }
+
   /** コメント欄のボタンをまとめて受け取る */
   function handleListClick(event) {
     var button = event.target.closest('[data-action]');
@@ -705,6 +1036,7 @@
     var id     = button.getAttribute('data-id');
 
     if (action === 'login')       { if (hooks.onRequireLogin) { hooks.onRequireLogin(); } return; }
+    if (action === 'image')       { openLightbox(button.getAttribute('data-path')); return; }
     if (busyId) { return; }                      // 通信中は二重操作を防ぐ
 
     if (action === 'edit')        { startEdit(id);   return; }
@@ -768,13 +1100,28 @@
       els.listEl     = options.listEl;
       els.composerEl = options.composerEl;
       els.scrollEl   = options.scrollEl || null;
+      els.lightboxEl = options.lightboxEl || null;
       hooks = options.hooks || {};
 
       renderComposer();
       updateComposerState();
 
-      // 編集・削除・確認のボタンをまとめて受け取る
+      // 編集・削除・確認・写真のボタンをまとめて受け取る
       els.listEl.addEventListener('click', handleListClick);
+
+      // 署名URLが切れていた場合は取り直す
+      els.listEl.addEventListener('error', handleImageError, true);
+
+      if (els.lightboxEl) {
+        els.lightboxEl.addEventListener('click', function (event) {
+          if (event.target.closest('[data-close-image]')) { closeLightbox(); }
+        });
+        els.lightboxEl.addEventListener('error', handleImageError, true);
+      }
+
+      global.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') { closeLightbox(); }
+      });
 
       // 画面を裏にしている間は取得を止める
       if (global.document && global.document.addEventListener) {
@@ -788,6 +1135,8 @@
     show: function (appId) {
       currentAppId = appId;
       listError = '';
+      closeLightbox();
+      clearPendingImage();
       editingId = null;
       editingDraft = '';
       deletingId = null;
@@ -814,6 +1163,10 @@
 
     /** ログイン状態が変わったとき */
     onAuthChange: function () {
+      closeLightbox();
+      clearPendingImage();
+      imageUrls = {};
+      imageLoading = {};
       editingId = null;
       editingDraft = '';
       deletingId = null;

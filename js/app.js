@@ -216,6 +216,7 @@
       listEl: document.getElementById('commentSection'),
       composerEl: document.getElementById('composer'),
       scrollEl: dom.mainScroll,
+      lightboxEl: document.getElementById('imageLightbox'),
       hooks: {
         isLoggedIn: function () { return Auth.isLoggedIn(); },
         getToken: function () {

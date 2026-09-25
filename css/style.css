@@ -911,6 +911,32 @@ svg {
   color: var(--warn-text);
 }
 
+/* コメントに添付された写真 */
+.comment__image-button {
+  display: block;
+  margin-top: 8px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-sub);
+  cursor: zoom-in;
+  overflow: hidden;
+  line-height: 0;
+  max-width: 260px;
+}
+
+.comment__image-button:hover { border-color: var(--line-strong); }
+
+.comment__image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 200px;          /* 縦写真でも大きくなりすぎないようにする */
+  object-fit: contain;
+  background: var(--surface-sub);
+}
+
 /* 編集中の入力欄 */
 .comment__editor { margin-top: 5px; }
 
@@ -1006,6 +1032,86 @@ svg {
 .composer__input:focus { outline: none; }
 .composer__input:disabled { background: transparent; color: var(--text-weak); cursor: not-allowed; }
 .composer__input::placeholder { color: var(--text-weak); }
+
+.composer__photo {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+
+.composer__photo:hover { background: var(--surface-sub); color: var(--text); }
+.composer__photo:disabled { opacity: .5; cursor: default; }
+
+.composer__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.composer__preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.composer__preview[hidden] { display: none; }
+
+.composer__preview-image {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--surface-sub);
+}
+
+.composer__preview-body { flex: 1; min-width: 0; }
+
+.composer__preview-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.composer__preview-size {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-weak);
+}
+
+.composer__preview-remove {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-sub);
+  cursor: pointer;
+}
+
+.composer__preview-remove:hover { background: var(--surface-sub); color: var(--text); }
 
 .composer__send {
   flex: none;
@@ -1327,6 +1433,57 @@ svg {
   color: var(--accent-dark);
 }
 
+/* ---------- 写真の拡大表示 ---------- */
+.lightbox[hidden] { display: none; }
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.lightbox__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 21, 26, 0.82);
+}
+
+.lightbox__panel {
+  position: relative;
+  max-width: min(1100px, 100%);
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox__image {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 48px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--radius);
+  background: #23303a;
+}
+
+.lightbox__close {
+  position: absolute;
+  top: -46px;
+  right: 0;
+  display: flex;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.lightbox__close:hover { background: rgba(255, 255, 255, 0.22); }
+
 /* ---------- トースト通知 ---------- */
 .toast-area {
   position: fixed;
@@ -1411,6 +1568,11 @@ svg {
   .workbar { padding: 11px 16px 0; }
   .tab { padding: 9px 11px 11px; font-size: 13.5px; }
   .file-row { padding: 12px 13px; gap: 10px; }
+  .comment__image-button { max-width: 100%; }
+  .comment__image { max-height: 240px; }
+  .lightbox { padding: 12px; }
+  .lightbox__image { max-height: calc(100vh - 80px); }
+  .lightbox__close { top: -42px; }
   .detail, .panel, .comments { border-radius: var(--radius); }
   .detail__name { font-size: 19px; }
 }

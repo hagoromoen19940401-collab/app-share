@@ -23,6 +23,9 @@
     publishableKey: 'sb_publishable_EzqE7TE3zY_AuZJlZWEuKA_3fsXczmK'
   };
 
+  // チャットの写真を扱う Edge Function
+  var IMAGE_FUNCTION_URL = CONFIG.url + '/functions/v1/appshare-chat-image';
+
   var client = null;
 
   /** supabase-js のクライアントを1つだけ作って使い回す */
@@ -54,6 +57,27 @@
       }
       return res.data;
     });
+  }
+
+  /** Edge Function の応答を読む。失敗は Error として投げる */
+  function readFunctionResponse(response) {
+    return response.json().catch(function () {
+      return {};
+    }).then(function (data) {
+      if (!response.ok || !data || data.ok !== true) {
+        throw new Error((data && data.message) || '通信に失敗しました');
+      }
+      return data;
+    });
+  }
+
+  /** Edge Function をJSONで呼ぶ */
+  function callImageFunction(payload) {
+    return fetch(IMAGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(readFunctionResponse);
   }
 
   var Api = {
@@ -95,6 +119,32 @@
       }).then(function (rows) {
         return (rows && rows[0]) || { ok: false, message: '変更できませんでした' };
       });
+    },
+
+    /**
+     * 写真つきコメントの投稿。
+     * 投稿者名と staff_id はブラウザから送らない（サーバー側で決まる）
+     */
+    imageUpload: function (token, appId, body, blob) {
+      var form = new FormData();
+      form.append('action', 'upload');
+      form.append('token', token);
+      form.append('app_id', appId);
+      form.append('body', body || '');
+      form.append('file', blob, 'photo.jpg');
+
+      return fetch(IMAGE_FUNCTION_URL, { method: 'POST', body: form })
+        .then(readFunctionResponse);
+    },
+
+    /** 表示用の署名つきURLを取得。{ url, expires_in } を返す */
+    imageViewUrl: function (token, path) {
+      return callImageFunction({ action: 'view', token: token, path: path });
+    },
+
+    /** 使われていない写真をStorageから削除する */
+    imageDelete: function (token, path) {
+      return callImageFunction({ action: 'delete-object', token: token, path: path });
     },
 
     /** アプリを登録。戻り値は { ok, message, app_id, app_name } */
