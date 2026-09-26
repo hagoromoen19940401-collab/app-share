@@ -9,35 +9,37 @@
 :root {
   --accent:        #2f6f68;
   --accent-dark:   #255852;
-  --accent-soft:   #e8f1ef;
+  --accent-soft:   #e7f0ee;
   --accent-line:   #bcd6d1;
 
-  --bg:            #f5f6f8;
+  /* 背景は真っ白にせず、ごく薄い暖色グレー。カードは白 */
+  --bg:            #f5f4f1;
   --surface:       #ffffff;
-  --surface-sub:   #fafbfc;
-  --sidebar-bg:    #f0f2f5;
+  --surface-sub:   #faf9f7;
+  --sidebar-bg:    #efeeea;
+  --segment-bg:    #ebeae5;
 
-  --text:          #1f2529;
-  --text-sub:      #5c666f;
-  --text-weak:     #8a949d;
+  --text:          #1d2327;
+  --text-sub:      #58626a;
+  --text-weak:     #879097;
 
-  --line:          #e2e6ea;
-  --line-strong:   #d2d8de;
+  --line:          #e5e3de;
+  --line-strong:   #d5d2cb;
 
   --warn-bg:       #fdf3e7;
   --warn-line:     #e8cda5;
   --warn-text:     #8a5a1a;
 
-  --radius-sm:     6px;
+  --radius-sm:     8px;
   --radius:        10px;
   --radius-lg:     14px;
 
-  --shadow-sm:     0 1px 2px rgba(23, 33, 41, 0.06);
-  --shadow:        0 2px 8px rgba(23, 33, 41, 0.08);
-  --shadow-pop:    0 6px 20px rgba(23, 33, 41, 0.14);
+  --shadow-sm:     0 1px 2px rgba(40, 36, 30, 0.05);
+  --shadow:        0 1px 3px rgba(40, 36, 30, 0.06), 0 4px 12px rgba(40, 36, 30, 0.04);
+  --shadow-pop:    0 10px 32px rgba(40, 36, 30, 0.16);
 
-  --header-h:      56px;
-  --sidebar-w:     256px;
+  --header-h:      60px;
+  --sidebar-w:     264px;
 
   --font: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
           "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
@@ -1735,4 +1737,361 @@ svg {
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
+}
+
+/* =========================================================
+   UIリニューアル 第1段階（全体の見た目の土台）
+   ・ヘッダー / サイドバー / タブ / カード / ボタン / モーダル
+   ・見た目だけを上書きする。JavaScript が使うクラス名は変えない
+   ========================================================= */
+
+/* ---------- ヘッダー ---------- */
+.header {
+  gap: 10px;
+  padding: 0 20px;
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.header__brand { gap: 10px; }
+
+/* ブランドのマーク：メインカラーの角丸四角に白い線画 */
+.header__mark {
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.header__title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.header__tag {
+  padding: 1px 8px;
+  border-color: var(--line);
+  background: var(--surface-sub);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+/* 右側：職員名・ログアウト・ログイン・設定を1つのまとまりに */
+.header__session { gap: 4px; }
+
+.header__session-text {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--surface-sub);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+}
+
+.header__logout {
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+}
+
+.header__login,
+.header__settings {
+  min-height: 36px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  border-color: var(--line);
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- サイドバー ---------- */
+.sidebar {
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--line);
+}
+
+.sidebar__head {
+  padding: 20px 22px 10px;
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+}
+
+.sidebar__nav { padding: 0 12px 12px; }
+
+.app-item {
+  position: relative;
+  gap: 11px;
+  padding: 9px 12px;
+  margin-bottom: 3px;
+  border-radius: var(--radius-sm);
+  color: var(--text-sub);
+}
+
+.app-item:hover { background: rgba(40, 36, 30, 0.05); }
+
+/* 選択中：白いカード＋左の細いバー＋アイコンをメインカラーに */
+.app-item.is-active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(40, 36, 30, 0.08), 0 0 0 1px var(--line);
+}
+
+.app-item.is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+
+.app-item.is-active .app-item__meta { color: var(--text-weak); }
+
+.app-item__tile {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.app-item:hover .app-item__tile { background: var(--surface); }
+
+.app-item.is-active .app-item__tile {
+  background: var(--accent);
+  box-shadow: none;
+  color: #fff;
+}
+
+.app-item.is-active .app-item__count {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.sidebar__foot { padding: 14px 22px 18px; }
+
+/* ---------- 上部のパンくずとタブ ---------- */
+.workbar {
+  padding: 14px clamp(16px, 3vw, 32px) 12px;
+  background: var(--surface);
+}
+
+/* タブはセグメント型。選択中は白く浮き上がる */
+.workbar__tabs {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: 10px;
+  padding: 3px;
+  border-radius: var(--radius);
+  background: var(--segment-bg);
+  max-width: 100%;
+}
+
+.tab {
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 18px;
+  border-radius: var(--radius-sm);
+  color: var(--text-sub);
+  font-size: 13.5px;
+}
+
+.tab::after { display: none; }
+
+.tab:hover { background: rgba(255, 255, 255, 0.55); color: var(--text); }
+
+.tab.is-active {
+  background: var(--surface);
+  color: var(--accent-dark);
+  box-shadow: 0 1px 2px rgba(40, 36, 30, 0.1), 0 0 0 1px rgba(40, 36, 30, 0.04);
+}
+
+.tab__count { background: rgba(40, 36, 30, 0.08); }
+
+/* ---------- 本文エリアとカード ---------- */
+.main__scroll { padding: 28px clamp(16px, 3vw, 36px) 12px; }
+
+.tabpanel > * + * { margin-top: 18px; }
+
+.detail,
+.panel,
+.comments,
+.login-prompt__box {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.detail,
+.panel { padding: 26px clamp(18px, 2.6vw, 32px); }
+
+.detail__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+}
+
+/* ---------- ボタン ---------- */
+.button {
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
+}
+
+.button--ghost {
+  border-color: var(--line-strong);
+  color: var(--text);
+  box-shadow: 0 1px 1px rgba(40, 36, 30, 0.04);
+}
+
+.button--quiet { box-shadow: none; }
+
+.button:focus-visible,
+.tab:focus-visible,
+.app-item:focus-visible,
+.icon-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- モーダル（PC / iPad） ---------- */
+.modal__scrim { background: rgba(28, 32, 30, 0.32); }
+
+.modal__panel {
+  border-color: var(--line);
+  box-shadow: var(--shadow-pop);
+}
+
+.modal__head { padding: 16px 20px; }
+.modal__title { font-size: 16.5px; }
+
+/* =========================================================
+   iPad 縦向きなど
+   ========================================================= */
+@media (max-width: 1024px) {
+  :root { --sidebar-w: 232px; }
+  .main__scroll { padding-top: 22px; }
+}
+
+/* =========================================================
+   iPhone（縮小版ではなく、画面幅いっぱいを自然に使う）
+   ========================================================= */
+@media (max-width: 760px) {
+  :root { --header-h: 56px; }
+
+  .header {
+    gap: 6px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+
+  .header__mark { width: 30px; height: 30px; }
+  .header__title { font-size: 16px; }
+
+  /* ボタンは押しやすい大きさに（44px前後） */
+  .icon-button { width: 40px; height: 40px; padding: 9px; }
+
+  .header__session-text {
+    max-width: 30vw;
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+
+  .header__logout { min-height: 36px; padding: 6px 8px; font-size: 12px; }
+
+  .header__login,
+  .header__settings {
+    min-width: 40px;
+    min-height: 40px;
+    justify-content: center;
+    padding: 8px 10px;
+  }
+
+  /* サイドバーは引き出し式。幅は画面に合わせる */
+  .sidebar {
+    width: min(300px, 86vw);
+    padding-left: env(safe-area-inset-left);
+    background: var(--sidebar-bg);
+    box-shadow: none;          /* 閉じているときに影が画面の左端に見えないように */
+  }
+
+  .sidebar.is-open { box-shadow: var(--shadow-pop); }
+
+  .app-item { padding: 11px 12px; }
+
+  .workbar { padding: 12px 16px 12px; }
+
+  /* タブは画面幅いっぱいの3分割 */
+  .workbar__tabs {
+    display: flex;
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 38px;
+    padding: 7px 8px;
+    font-size: 14px;
+  }
+
+  .main__scroll { padding: 16px 14px 6px; }
+
+  .tabpanel > * + * { margin-top: 14px; }
+
+  .detail,
+  .panel { padding: 20px 18px; }
+
+  .comments { padding: 18px 16px 8px; }
+
+  .detail,
+  .panel,
+  .comments { border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+
+  /* 画面内の主なボタンは押しやすい高さに（チャット入力欄の送信ボタンは除く） */
+  .modal__body .button,
+  .login-prompt__box .button,
+  .detail__actions .button { min-height: 44px; }
+
+  /* モーダルは下から出るほぼ全画面のシート */
+  .modal {
+    align-items: flex-end;
+    padding: max(12px, env(safe-area-inset-top)) 0 0;
+  }
+
+  .modal__panel,
+  .modal__panel--narrow {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border: 0;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .modal__head { padding: 14px 16px; }
+
+  .modal__body {
+    padding: 18px 16px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+
+  .toast-area {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    transform: none;
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
 }
