@@ -2095,3 +2095,287 @@ svg {
     bottom: max(16px, env(safe-area-inset-bottom));
   }
 }
+
+/* =========================================================
+   UIリニューアル 第2段階（チャット画面）
+   ・見た目だけを上書きする。JavaScript が使うクラス名は変えない
+   ・吹き出しにはせず、余白で区切る業務チャット
+   ========================================================= */
+
+/* ---------- コメント一覧 ---------- */
+.comments { padding: 18px clamp(16px, 2.4vw, 26px) 10px; }
+
+.comments__head {
+  padding-bottom: 12px;
+  border-bottom-color: var(--line);
+}
+
+.comment-list { padding: 8px 0 8px; }
+
+/* 区切り線はやめ、余白と行の背景で区切る */
+.comment {
+  gap: 12px;
+  margin: 0 -10px;
+  padding: 12px 10px;
+  border-bottom: 0;
+  border-radius: var(--radius);
+}
+
+.comment + .comment { margin-top: 4px; }
+
+/* 自分の投稿：ごく薄い背景と左の細いアクセント */
+.comment--mine {
+  background: #f6f9f8;
+  box-shadow: inset 3px 0 0 var(--accent-line);
+}
+
+.comment__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--segment-bg);
+  color: var(--text-sub);
+  font-size: 13.5px;
+}
+
+.comment--mine .comment__avatar {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+/* PCでは本文が横に広がりすぎないようにする */
+.comment__body { max-width: 760px; }
+
+.comment__head { gap: 2px 10px; line-height: 1.5; }
+
+.comment__author { font-size: 14.5px; font-weight: 700; color: var(--text); }
+
+.comment__time { font-size: 12px; color: var(--text-weak); }
+
+.comment__edited {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 11.5px;
+  color: var(--text-weak);
+}
+
+.comment__text {
+  margin-top: 4px;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text);
+}
+
+/* ---------- 操作ボタン（本文より目立たせない） ---------- */
+.comment__actions {
+  gap: 4px 6px;
+  margin-top: 8px;
+}
+
+.comment__action {
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-weak);
+}
+
+.comment__action:hover { background: rgba(40, 36, 30, 0.05); color: var(--text-sub); }
+
+/* 確認しました / 保存：細い枠だけで控えめに */
+.comment__action--primary {
+  border-color: var(--accent-line);
+  background: var(--surface);
+  color: var(--accent-dark);
+}
+
+.comment__action--primary:hover { background: var(--accent-soft); color: var(--accent-dark); }
+
+.comment__action--danger {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+/* 確認済み：小さなステータス表示 */
+.comment__checked {
+  gap: 6px;
+  padding: 4px 4px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--accent-dark);
+}
+
+.comment__checked::before {
+  content: "";
+  width: 9px;
+  height: 5px;
+  margin-top: -3px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+/* 確認済み ○人：小さな丸いバッジ */
+.comment__reads {
+  padding: 2px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 11.5px;
+  color: var(--text-weak);
+}
+
+.comment__reads:hover { background: var(--surface-sub); color: var(--text-sub); }
+
+.comment__reads.is-open {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.comment__readers {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-color: var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+/* ---------- 写真（1枚は大きめ、2枚以上は2列） ---------- */
+.comment__images { margin-top: 10px; }
+
+.comment__image-button {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.comment__images--single .comment__image-button { max-width: 360px; }
+.comment__images--single .comment__image { max-height: 300px; }
+
+.comment__images--grid {
+  gap: 6px;
+  max-width: 360px;
+}
+
+/* ---------- 入力エリア（画面下部） ---------- */
+.composer {
+  padding: 10px clamp(16px, 3vw, 36px) max(12px, env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+
+/* 写真ボタン ＋ 入力欄（主役） ＋ 送信ボタン */
+.composer__box {
+  align-items: flex-end;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.composer__box.is-focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.composer__photo {
+  width: 38px;
+  height: 38px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-sub);
+}
+
+.composer__photo:hover { background: var(--surface-sub); color: var(--accent-dark); }
+
+.composer__input {
+  min-height: 38px;
+  padding: 7px 4px;
+  line-height: 1.6;
+}
+
+.composer__send {
+  min-height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+}
+
+.composer__send:hover { background: var(--accent-dark); }
+
+.composer__send:disabled {
+  background: var(--line-strong);
+  box-shadow: none;
+}
+
+.composer__hint { margin-top: 6px; padding: 0 4px; }
+
+.composer__preview {
+  padding: 10px 12px;
+  border-color: var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-sub);
+}
+
+.composer__preview-item { border-radius: var(--radius-sm); }
+
+/* ---------- iPhone ---------- */
+@media (max-width: 760px) {
+  /* チャットの枠は画面幅いっぱい（左右の余白と角丸をなくす） */
+  .comments {
+    margin-left: -14px;
+    margin-right: -14px;
+    padding: 14px 14px 8px;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .comment {
+    gap: 10px;
+    margin: 0 -8px;
+    padding: 11px 8px;
+  }
+
+  .comment__avatar { width: 32px; height: 32px; font-size: 13px; }
+
+  .comment__images--single .comment__image-button,
+  .comment__images--grid { max-width: 100%; }
+
+  /* 操作ボタンは指で押しやすい高さに */
+  .comment__action { min-height: 32px; padding: 5px 10px; }
+  .comment__reads { min-height: 28px; }
+
+  /* 入力エリア：親指で押しやすい44px */
+  .composer {
+    padding: 8px 10px max(10px, env(safe-area-inset-bottom));
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+  }
+
+  .composer__box { gap: 4px; padding: 4px; }
+
+  .composer__photo { width: 44px; height: 44px; padding: 10px; }
+
+  .composer__input { min-height: 44px; padding: 10px 4px; line-height: 1.5; }
+
+  .composer__send { min-height: 44px; padding: 0 16px; }
+
+  /* 案内文（プレースホルダー）だけ少し小さくして1行に収める。入力する文字は16pxのまま */
+  .composer__input::placeholder { font-size: 14px; }
+}
+
+/* 入力欄の文字は、タッチ端末では必ず16px以上（Safariの自動拡大を防ぐ） */
+@media (hover: none), (pointer: coarse) {
+  .composer__input,
+  .comment__editor-input { font-size: 16px; }
+}
