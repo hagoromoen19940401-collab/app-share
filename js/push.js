@@ -116,8 +116,7 @@
         '<div class="settings-section__head">' +
           '<div>' +
             '<h3 class="settings-section__title">チャット通知</h3>' +
-            '<p class="settings-section__note">新しいコメントが投稿されたら、この端末に通知します。' +
-              '自分の投稿は通知されません。</p>' +
+            '<p class="settings-section__note">新しいコメントをこの端末に通知します（自分の投稿は除く）。</p>' +
           '</div>' +
         '</div>' +
         inner +
@@ -170,8 +169,9 @@
       var denied = global.Notification.permission === 'denied';
 
       area.innerHTML = sectionHtml(
-        '<div class="staff-form__actions">' +
-          '<span class="settings-count">' + (on ? '通知：ON' : '通知：OFF') + '</span>' +
+        '<div class="settings-row">' +
+          '<span class="settings-status' + (on ? ' settings-status--on' : (denied ? ' settings-status--warn' : '')) + '">' +
+            (on ? '通知オン' : (denied ? '未許可' : '通知オフ')) + '</span>' +
           (on
             ? '<button class="button button--ghost" type="button" id="pushToggle" data-on="1"' +
                 (busy ? ' disabled' : '') + '>通知をオフにする</button>'

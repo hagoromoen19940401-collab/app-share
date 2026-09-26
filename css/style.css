@@ -2379,3 +2379,280 @@ svg {
   .composer__input,
   .comment__editor-input { font-size: 16px; }
 }
+
+/* =========================================================
+   UIリニューアル 第3段階（設定画面）
+   ・「自分の設定」と「管理」の2つのまとまり
+   ・機能ごとに独立したカード
+   ・見た目だけを上書きする。JavaScript が使う id / クラス名は変えない
+   ========================================================= */
+
+/* 設定画面だけ、背景を薄いグレーにしてカードを浮かせる */
+#settingsBody { background: var(--bg); }
+
+/* ---------- まとまり（自分の設定 / 管理） ---------- */
+.settings-group + .settings-group { margin-top: 28px; }
+
+.settings-group__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0 4px 10px;
+}
+
+.settings-group__title {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-sub);
+}
+
+.settings-group__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.settings-group__badge--open {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.settings-group__badge-icon { width: 12px; height: 12px; flex: none; display: inline-flex; }
+
+/* ---------- カード ---------- */
+.settings-section,
+.settings-section--split {
+  margin-top: 0;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.settings-group > * + * { margin-top: 12px; }
+.settings-group > .settings-group__head + * { margin-top: 0; }
+#pushArea:empty { display: none; }
+#pushArea + .settings-section { margin-top: 12px; }
+
+/* カードの中の「ログインが必要です」などの案内は、余白を詰める */
+.settings-section .empty { padding: 16px 8px 6px; }
+
+/* カードの見出し：タイトル＋短い説明＋右に操作ボタン */
+.settings-section__head {
+  align-items: center;
+  gap: 10px 14px;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.settings-section__head > div { flex: 1 1 200px; min-width: 0; }
+
+.settings-section__title { font-size: 15.5px; }
+
+.settings-section__note { margin-top: 2px; font-size: 12.5px; line-height: 1.6; }
+
+.settings-section__head .button {
+  min-height: 36px;
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+/* 1行の「状態＋ボタン」 */
+.settings-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  margin-top: 14px;
+}
+
+.settings-row .button { margin-left: auto; }
+
+/* 状態の表示（通知オン / 通知オフ / 未許可） */
+.settings-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px 4px 9px;
+  border-radius: 999px;
+  background: var(--surface-sub);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+
+.settings-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+
+.settings-status--on {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.settings-status--on::before { background: var(--accent); }
+
+.settings-status--warn {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.settings-status--warn::before { background: #c98a3c; }
+
+/* カードの中の入力フォームは、カードより一段薄い面で囲む */
+.staff-form {
+  margin-top: 14px;
+  padding: 16px;
+  border-color: var(--line);
+  background: var(--surface-sub);
+}
+
+.staff-form__actions { margin-top: 16px; }
+
+.field__label { margin-bottom: 6px; }
+
+.account-box {
+  margin-top: 14px;
+  background: var(--surface-sub);
+  border-color: var(--line);
+}
+
+.settings-subhead { margin-top: 18px; }
+
+/* ---------- 鍵つきカード（管理機能） ---------- */
+.settings-lock__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.settings-lock__icon {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  display: flex;
+  padding: 9px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+/* パスワード入力欄と解除ボタンを1行に */
+.settings-lock__form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+  margin-top: 16px;
+  padding-left: 50px;
+}
+
+.settings-lock__form .field + .field { margin-top: 0; }
+.settings-lock__form .field__hint { max-width: 260px; }
+.settings-lock__form .staff-form__actions { margin-top: 0; }
+.settings-lock .inline-notice { margin-left: 50px; }
+
+/* ---------- 職員・アプリの一覧 ---------- */
+.staff-list,
+.app-reg-list {
+  margin-top: 10px;
+  border-color: var(--line);
+  border-radius: var(--radius);
+}
+
+.staff-item,
+.app-reg-item { padding: 11px 14px; }
+
+.staff-item__avatar { border-radius: 9px; }
+
+.app-reg-item__name { font-size: 15px; font-weight: 700; }
+.app-reg-item__url  { margin-top: 1px; }
+
+/* 削除ボタンは通常は控えめ（第2段階のボタンと同じ見た目） */
+.staff-item .comment__action,
+.app-reg-item .comment__action { padding: 5px 11px; }
+
+/* 削除確認のときだけ、危険な操作だと分かる色にする */
+.staff-item--confirm,
+.app-reg-item--confirm {
+  background: #fdf3f2;
+  box-shadow: inset 3px 0 0 #d9544a;
+}
+
+.staff-item__confirm,
+.app-reg-item__confirm { color: #9f2f27; }
+
+.staff-item--confirm .comment__action--danger,
+.app-reg-item--confirm .comment__action--danger {
+  border-color: #b8322a;
+  background: #b8322a;
+  color: #fff;
+}
+
+.staff-item--confirm .comment__action--danger:hover,
+.app-reg-item--confirm .comment__action--danger:hover { background: #9f2a23; color: #fff; }
+
+.staff-item--confirm .comment__action:not(.comment__action--danger),
+.app-reg-item--confirm .comment__action:not(.comment__action--danger) {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--text-sub);
+}
+
+/* ---------- PC / iPad：縦に長くなりすぎないよう少し広めに ---------- */
+@media (min-width: 761px) {
+  #settingsModal .modal__panel { width: min(620px, 100%); }
+}
+
+/* ---------- iPhone ---------- */
+@media (max-width: 760px) {
+  #settingsBody { padding: 16px 12px; padding-bottom: max(28px, env(safe-area-inset-bottom)); }
+
+  .settings-group + .settings-group { margin-top: 24px; }
+
+  .settings-section,
+  .settings-section--split { padding: 16px 14px; }
+
+  /* 見出しのボタンは、狭い画面では説明文の下に回る */
+  .settings-section__head .button { min-height: 40px; }
+
+  .settings-row .button { min-height: 44px; }
+
+  .settings-lock__form { padding-left: 0; }
+  .settings-lock .inline-notice { margin-left: 0; }
+
+  .staff-form { padding: 14px 12px; }
+
+  .staff-item,
+  .app-reg-item { padding: 12px; }
+
+  .staff-item .comment__action,
+  .app-reg-item .comment__action { min-height: 34px; }
+
+  /* 上部の「設定」と閉じるボタンは常に表示（内容だけスクロール） */
+  #settingsModal .modal__head {
+    position: relative;
+    z-index: 1;
+    background: var(--surface);
+  }
+
+  #settingsModal .modal__close { display: flex; width: 40px; height: 40px; }
+}

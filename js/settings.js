@@ -112,9 +112,28 @@
       '</section>';
   }
 
+  /** 「管理」グループの見出し。設定パスワードで保護されていることを示す */
+  function adminHeadHtml(unlocked) {
+    return '' +
+      '<div class="settings-group__head">' +
+        '<h3 class="settings-group__title">管理</h3>' +
+        '<span class="settings-group__badge' + (unlocked ? ' settings-group__badge--open' : '') + '">' +
+          '<span class="settings-group__badge-icon" aria-hidden="true">' + ICON_LOCK + '</span>' +
+          (unlocked ? 'ロック解除中' : '設定パスワードで保護') +
+        '</span>' +
+      '</div>';
+  }
+
   function bodyHtml() {
     return '' +
-      accountHtml() +
+      '<div class="settings-group">' +
+        '<div class="settings-group__head"><h3 class="settings-group__title">自分の設定</h3></div>' +
+        '<div id="pushArea"></div>' +
+        accountHtml() +
+      '</div>' +
+
+      '<div class="settings-group settings-group--admin">' +
+        adminHeadHtml(true) +
       '<section class="settings-section settings-section--split">' +
         '<div class="settings-section__head">' +
           '<div>' +
@@ -206,9 +225,11 @@
           '<span class="settings-count" id="appCountLabel"></span>' +
         '</div>' +
         '<div id="appListArea"></div>' +
-      '</section>';
+      '</section>' +
+      '</div>';
   }
 
+  var ICON_LOCK  = '<svg viewBox="0 0 24 24"><path d="M6.5 10.5h11v9h-11z"/><path d="M9 10.5V8a3 3 0 016 0v2.5"/></svg>';
   var ICON_OK    = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var ICON_ALERT = '<svg viewBox="0 0 24 24"><path d="M12 4.5l8.5 15H3.5z"/><path d="M12 10v4"/><path d="M12 16.8v.2"/></svg>';
 
@@ -791,21 +812,29 @@
         '</div>';
 
     return '' +
-      '<section class="settings-section">' +
-        '<div class="settings-section__head">' +
+      '<div class="settings-group">' +
+        '<div class="settings-group__head"><h3 class="settings-group__title">自分の設定</h3></div>' +
+        '<div id="pushArea"></div>' +
+      '</div>' +
+
+      '<div class="settings-group settings-group--admin">' +
+        adminHeadHtml(false) +
+      '<section class="settings-section settings-lock">' +
+        '<div class="settings-lock__head">' +
+          '<span class="settings-lock__icon" aria-hidden="true">' + ICON_LOCK + '</span>' +
           '<div>' +
             '<h3 class="settings-section__title">' +
-              (first ? '設定パスワードの登録' : '設定パスワード') +
+              (first ? '設定パスワードの登録' : '管理機能') +
             '</h3>' +
             '<p class="settings-section__note">' +
               (first
-                ? 'この端末から、最初の設定パスワードを決めてください。'
-                : '職員管理とアプリ管理を開くには、設定パスワードが必要です。') +
+                ? '管理機能で使う設定パスワードを、この端末から決めてください。'
+                : '職員管理・アプリ管理を開くには、設定パスワードが必要です。') +
             '</p>' +
           '</div>' +
         '</div>' +
 
-        '<div class="staff-form" style="margin-top:16px">' +
+        '<div class="settings-lock__form">' +
           fields +
           '<div class="staff-form__actions">' +
             '<button class="button" type="button" id="gateSubmit">' +
@@ -818,7 +847,8 @@
           '<span class="inline-notice__icon" aria-hidden="true" id="gateMessageIcon"></span>' +
           '<span id="gateMessageText"></span>' +
         '</div>' +
-      '</section>';
+      '</section>' +
+      '</div>';
   }
 
   /**
@@ -827,7 +857,9 @@
    */
   function mountPush() {
     if (!global.AppSharePush) { return; }
-    els.body.insertAdjacentHTML('afterbegin', '<div id="pushArea"></div>');
+    if (!document.getElementById('pushArea')) {
+      els.body.insertAdjacentHTML('afterbegin', '<div id="pushArea"></div>');
+    }
     global.AppSharePush.mount(document.getElementById('pushArea'), {
       onRequireLogin: function () {
         close();
