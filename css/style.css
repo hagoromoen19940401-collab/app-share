@@ -64,7 +64,7 @@ body {
 
 h1, h2, h3, p, ul, ol, figure { margin: 0; }
 ul, ol { padding: 0; list-style: none; }
-button, input, textarea { font: inherit; color: inherit; }
+button, input, textarea, select { font: inherit; color: inherit; }
 
 svg {
   width: 100%;
@@ -432,6 +432,7 @@ svg {
 .workbar__crumb { white-space: nowrap; }
 
 .workbar__current {
+  min-width: 0;                /* flexの中でも省略表示（…）が効くようにする */
   font-size: 13px;
   font-weight: 700;
   color: var(--text);
@@ -895,6 +896,7 @@ svg {
 }
 
 .comment__reader {
+  max-width: 100%;
   padding: 2px 9px;
   border-radius: 999px;
   background: var(--surface);
@@ -1694,6 +1696,41 @@ svg {
   .lightbox__nav { bottom: -46px; }
   .detail, .panel, .comments { border-radius: var(--radius); }
   .detail__name { font-size: 19px; }
+}
+
+/* 長い名前・URL・文章で横にはみ出さないよう、途中でも折り返す */
+.detail__name,
+.detail__description,
+.file-row__label,
+.file-row__meta,
+.comment__author,
+.comment__reader,
+.account-box__name,
+.staff-item__name,
+.app-reg-item__name,
+.modal__title,
+.login-prompt__title,
+.login-prompt__text,
+.inline-notice,
+.toast {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/*
+ * iPhone / iPad（タッチ操作の端末）では、入力欄の文字を16px以上にする。
+ * 16px未満だと Safari が入力時に画面を自動で拡大し、そのまま戻らず横にずれるため。
+ * PC（マウス操作）の見た目は変えない。
+ */
+@media (hover: none), (pointer: coarse) {
+  input:not([type="file"]),
+  textarea,
+  select,
+  .field__input,
+  .composer__input,
+  .comment__editor-input {
+    font-size: 16px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
