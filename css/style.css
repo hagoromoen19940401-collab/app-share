@@ -1444,6 +1444,8 @@ svg {
   background: var(--surface);
 }
 
+.staff-item .comment__action { padding: 4px 11px; }
+
 .staff-item + .staff-item { border-top: 1px solid var(--line); }
 
 .staff-item__avatar {
@@ -1460,7 +1462,30 @@ svg {
   font-weight: 700;
 }
 
-.staff-item__name { font-size: 14.5px; font-weight: 600; }
+.staff-item__name { font-size: 14.5px; font-weight: 600; flex: 1; min-width: 0; }
+
+.staff-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.staff-item--confirm {
+  flex-wrap: wrap;
+  background: var(--warn-bg);
+}
+
+.staff-item__confirm {
+  flex: 1 1 100%;
+  order: 3;
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--warn-text);
+}
+
+.staff-item--confirm .staff-item__actions { order: 4; margin-top: 6px; }
 
 /* 成功時の通知 */
 .inline-notice--ok {

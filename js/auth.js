@@ -231,6 +231,7 @@
 
         var saved = writeRaw({
           token: result.token,
+          staffId: staffId,
           displayName: result.display_name,
           expiresAt: result.expires_at
         });
@@ -307,7 +308,13 @@
     logout: logout,
     getSession: getSession,
     isLoggedIn: isLoggedIn,
-    currentName: currentName
+    currentName: currentName,
+
+    /** ログイン中の職員ID（古い保存データでは空になることがある） */
+    currentStaffId: function () {
+      var session = getSession();
+      return session ? (session.staffId || '') : '';
+    }
   };
 
   global.AppShareAuth = Auth;

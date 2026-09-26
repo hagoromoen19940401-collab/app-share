@@ -107,6 +107,19 @@
       });
     },
 
+    /**
+     * 職員を削除する。設定パスワードの確認（settings_token）が必須。
+     * 戻り値は { ok, message, staff_name }
+     */
+    staffDelete: function (settingsToken, staffId) {
+      return rpc('appshare_staff_delete', {
+        p_settings_token: settingsToken,
+        p_staff_id: staffId
+      }).then(function (rows) {
+        return (rows && rows[0]) || { ok: false, message: '削除できませんでした' };
+      });
+    },
+
     /** 設定パスワードが登録済みかどうか（ログイン不要） */
     settingsStatus: function () {
       return rpc('appshare_settings_status').then(function (rows) {

@@ -30,6 +30,9 @@
   var SETTINGS_KEY = 'app-share/settings-session';
   var settingsSession = null;   // { token, expiresAt }
   var gateBusy = false;
+  var deletingStaffId = null;   // 削除の確認を出している職員
+  var staffBusy = false;        // 削除の通信中
+  var staffCache = [];          // 表示中の職員一覧
 
   /* ---------------------------------------------------------
      画面の組み立て
@@ -290,14 +293,42 @@
     }
 
     area.innerHTML = '<ul class="staff-list">' + rows.map(function (row) {
+      var id = Util.escapeHtml(row.id);
+      var busy = staffBusy && deletingStaffId === row.id;
+
+      var actions = (deletingStaffId === row.id)
+        ? '<span class="staff-item__confirm">' +
+            Util.escapeHtml(row.display_name) + ' さんを削除しますか？<br>この操作は元に戻せません。' +
+          '</span>' +
+          '<span class="staff-item__actions">' +
+            '<button class="comment__action comment__action--danger" type="button" ' +
+                    'data-staff-delete-yes="' + id + '"' + (busy ? ' disabled' : '') + '>' +
+              (busy ? '削除中…' : '削除する') + '</button>' +
+            '<button class="comment__action" type="button" data-staff-delete-no="1">キャンセル</button>' +
+          '</span>'
+        : '<span class="staff-item__actions">' +
+            '<button class="comment__action" type="button" data-staff-delete="' + id + '">削除</button>' +
+          '</span>';
+
       return '' +
-        '<li class="staff-item">' +
+        '<li class="staff-item' + (deletingStaffId === row.id ? ' staff-item--confirm' : '') + '">' +
           '<span class="staff-item__avatar" aria-hidden="true">' +
             Util.escapeHtml(Util.initial(row.display_name)) +
           '</span>' +
           '<span class="staff-item__name">' + Util.escapeHtml(row.display_name) + '</span>' +
+          actions +
         '</li>';
     }).join('') + '</ul>';
+
+    // 一覧の枠は描き直しても同じ要素なので、クリック処理は一度だけ付ける
+    if (!area.dataset.staffBound) {
+      area.dataset.staffBound = '1';
+      area.addEventListener('click', handleStaffListClick);
+    }
+  }
+
+  function reRenderStaffList() {
+    renderStaffList(staffCache);
   }
 
   function loadStaffList() {
@@ -306,7 +337,10 @@
       area.innerHTML = '<div class="empty"><p class="empty__text">読み込んでいます…</p></div>';
     }
 
-    return Api.staffList().then(renderStaffList).catch(function (error) {
+    return Api.staffList().then(function (rows) {
+      staffCache = rows;
+      renderStaffList(rows);
+    }).catch(function (error) {
       if (area) {
         area.innerHTML = '<div class="empty"><p class="empty__text">' +
           Util.escapeHtml('職員一覧を取得できませんでした。' + error.message) + '</p></div>';
@@ -504,6 +538,63 @@
         area.innerHTML = '<div class="empty"><p class="empty__text">' +
           Util.escapeHtml('アプリ一覧を取得できませんでした。' + error.message) + '</p></div>';
       }
+    });
+  }
+
+  /* ---------------------------------------------------------
+     職員の削除
+     --------------------------------------------------------- */
+  function handleStaffListClick(event) {
+    var yes = event.target.closest('[data-staff-delete-yes]');
+    if (yes) { deleteStaff(yes.getAttribute('data-staff-delete-yes')); return; }
+
+    if (event.target.closest('[data-staff-delete-no]')) {
+      deletingStaffId = null;
+      clearMessage();
+      reRenderStaffList();
+      return;
+    }
+
+    var ask = event.target.closest('[data-staff-delete]');
+    if (ask) {
+      if (staffBusy) { return; }
+      deletingStaffId = ask.getAttribute('data-staff-delete');
+      clearMessage();
+      reRenderStaffList();
+    }
+  }
+
+  function deleteStaff(staffId) {
+    if (staffBusy) { return; }
+
+    var gate = settingsToken();
+    if (!gate) {
+      showMessage('設定パスワードの確認が必要です。設定を開き直してください。', 'error');
+      return;
+    }
+
+    staffBusy = true;
+    clearMessage();
+    reRenderStaffList();
+
+    Api.staffDelete(gate, staffId).then(function (result) {
+      if (!result.ok) {
+        showMessage(result.message || '削除できませんでした。', 'error');
+        return;
+      }
+
+      showMessage(result.staff_name + ' さんを削除しました。', 'ok');
+      deletingStaffId = null;
+
+      // 自分自身を削除した場合は、ログアウト状態に戻す
+      if (hooks.onStaffDeleted) { hooks.onStaffDeleted(staffId); }
+
+      return loadStaffList();
+    }).catch(function (error) {
+      showMessage('削除できませんでした。' + error.message, 'error');
+    }).then(function () {
+      staffBusy = false;
+      reRenderStaffList();
     });
   }
 
@@ -735,6 +826,8 @@
      --------------------------------------------------------- */
   /** 設定パスワードの確認が済んでいる場合の本体 */
   function renderSettings() {
+    deletingStaffId = null;
+    staffBusy = false;
     els.body.innerHTML = bodyHtml();
     bindBody();
 

@@ -298,7 +298,16 @@
         },
         onRequireLogin: function () { Auth.open(); },
         getDisplayName: function () { return Auth.currentName(); },
-        onAppsChanged: loadRemoteApps          // 登録したらすぐ左の一覧に反映する
+        onAppsChanged: loadRemoteApps,         // 登録したらすぐ左の一覧に反映する
+
+        // 自分自身を削除した場合は、ログアウト状態へ戻す
+        onStaffDeleted: function (staffId) {
+          var mine = Auth.currentStaffId();
+          if (mine && staffId && mine === staffId) {
+            Auth.logout();
+            showToast('自分のアカウントを削除したため、ログアウトしました。', 'alert');
+          }
+        }
       }
     });
 
