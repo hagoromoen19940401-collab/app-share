@@ -33,6 +33,9 @@
   var deletingStaffId = null;   // 削除の確認を出している職員
   var staffBusy = false;        // 削除の通信中
   var staffCache = [];          // 表示中の職員一覧
+  var deletingAppId = null;     // 削除の確認を出しているアプリ
+  var appBusy = false;          // アプリ削除の通信中
+  var appCache = [];            // 表示中のアプリ一覧
 
   /* ---------------------------------------------------------
      画面の組み立て
@@ -495,16 +498,44 @@
     }
 
     area.innerHTML = '<ul class="app-reg-list">' + rows.map(function (row) {
+      var id = Util.escapeHtml(row.id);
+      var confirming = deletingAppId === row.id;
+      var busy = appBusy && confirming;
+
+      var actions = confirming
+        ? '<span class="app-reg-item__confirm">' +
+            Util.escapeHtml(row.name) + ' を削除しますか？<br>' +
+            'このアプリのチャット・写真・確認履歴もすべて削除されます。<br>' +
+            'この操作は元に戻せません。' +
+          '</span>' +
+          '<span class="staff-item__actions">' +
+            '<button class="comment__action comment__action--danger" type="button" ' +
+                    'data-app-delete-yes="' + id + '"' + (busy ? ' disabled' : '') + '>' +
+              (busy ? '削除中…' : '削除する') + '</button>' +
+            '<button class="comment__action" type="button" data-app-delete-no="1"' +
+                    (busy ? ' disabled' : '') + '>キャンセル</button>' +
+          '</span>'
+        : '<span class="staff-item__actions">' +
+            '<button class="comment__action" type="button" data-app-delete="' + id + '">削除</button>' +
+          '</span>';
+
       return '' +
-        '<li class="app-reg-item">' +
+        '<li class="app-reg-item' + (confirming ? ' app-reg-item--confirm' : '') + '">' +
           '<span class="app-reg-item__body">' +
             '<span class="app-reg-item__name">' + Util.escapeHtml(row.name) + '</span>' +
             '<span class="app-reg-item__url">' + Util.escapeHtml(row.url) + '</span>' +
             (row.description
               ? '<span class="app-reg-item__desc">' + Util.escapeHtml(row.description) + '</span>' : '') +
           '</span>' +
+          actions +
         '</li>';
     }).join('') + '</ul>';
+
+    // 一覧の枠は描き直しても同じ要素なので、クリック処理は一度だけ付ける
+    if (!area.dataset.appBound) {
+      area.dataset.appBound = '1';
+      area.addEventListener('click', handleAppListClick);
+    }
   }
 
   function loadAppList() {
@@ -533,11 +564,78 @@
       return Promise.resolve();
     }
 
-    return Api.appsList(hooks.getToken()).then(renderAppList).catch(function (error) {
+    return Api.appsList(hooks.getToken()).then(function (rows) {
+      appCache = rows;
+      renderAppList(rows);
+    }).catch(function (error) {
       if (area) {
         area.innerHTML = '<div class="empty"><p class="empty__text">' +
           Util.escapeHtml('アプリ一覧を取得できませんでした。' + error.message) + '</p></div>';
       }
+    });
+  }
+
+  /* ---------------------------------------------------------
+     アプリの削除
+     --------------------------------------------------------- */
+  function handleAppListClick(event) {
+    var yes = event.target.closest('[data-app-delete-yes]');
+    if (yes) { deleteApp(yes.getAttribute('data-app-delete-yes')); return; }
+
+    if (appBusy) { return; }
+
+    if (event.target.closest('[data-app-delete-no]')) {
+      deletingAppId = null;
+      clearMessageIn('app');
+      renderAppList(appCache);
+      return;
+    }
+
+    var ask = event.target.closest('[data-app-delete]');
+    if (ask) {
+      deletingAppId = ask.getAttribute('data-app-delete');
+      clearMessageIn('app');
+      renderAppList(appCache);
+    }
+  }
+
+  function deleteApp(appId) {
+    if (appBusy) { return; }
+
+    var gate = settingsToken();
+    if (!gate) {
+      showMessageIn('app', '設定パスワードの確認が必要です。設定を開き直してください。', 'error');
+      return;
+    }
+
+    appBusy = true;
+    clearMessageIn('app');
+    renderAppList(appCache);
+
+    var token = hooks.getToken();
+
+    Api.appDelete(token, gate, appId).then(function (result) {
+      if (!result.ok) {
+        showMessageIn('app', result.message || '削除できませんでした。', 'error');
+        return;
+      }
+
+      deletingAppId = null;
+
+      // Storage の写真本体を消す（DBからは削除済み。失敗しても削除自体は完了）
+      return Api.imageDeleteAll(token, result.image_paths || []).then(function () {
+        showMessageIn('app', result.app_name + ' を削除しました。', 'ok');
+      }, function () {
+        showMessageIn('app', result.app_name + ' を削除しました。（写真の一部を削除できませんでした）', 'ok');
+      }).then(function () {
+        if (hooks.onAppsChanged) { hooks.onAppsChanged(); }   // 左のアプリ一覧もすぐ更新
+        return loadAppList();
+      });
+    }).catch(function (error) {
+      showMessageIn('app', '削除できませんでした。' + error.message, 'error');
+    }).then(function () {
+      appBusy = false;
+      renderAppList(appCache);
     });
   }
 
@@ -828,6 +926,8 @@
   function renderSettings() {
     deletingStaffId = null;
     staffBusy = false;
+    deletingAppId = null;
+    appBusy = false;
     els.body.innerHTML = bodyHtml();
     bindBody();
 

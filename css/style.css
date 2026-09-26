@@ -1398,13 +1398,33 @@ svg {
 
 .app-reg-item {
   display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 12px 14px;
   background: var(--surface);
 }
 
 .app-reg-item + .app-reg-item { border-top: 1px solid var(--line); }
 
-.app-reg-item__body { min-width: 0; }
+.app-reg-item__body { flex: 1; min-width: 0; }
+
+.app-reg-item .comment__action { padding: 4px 11px; }
+
+.app-reg-item--confirm {
+  flex-wrap: wrap;
+  background: var(--warn-bg);
+}
+
+.app-reg-item__confirm {
+  flex: 1 1 100%;
+  order: 3;
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--warn-text);
+}
+
+.app-reg-item--confirm .staff-item__actions { order: 4; margin-top: 6px; }
 
 .app-reg-item__name {
   display: block;

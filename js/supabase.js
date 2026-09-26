@@ -195,6 +195,34 @@
     },
 
     /**
+     * 写真をまとめて削除する。Edge Function は1回4枚までなので分けて呼ぶ
+     */
+    imageDeleteAll: function (token, paths) {
+      var list = [].concat(paths || []).filter(Boolean);
+      var chain = Promise.resolve();
+      for (var i = 0; i < list.length; i += 4) {
+        (function (chunk) {
+          chain = chain.then(function () { return Api.imageDelete(token, chunk); });
+        })(list.slice(i, i + 4));
+      }
+      return chain;
+    },
+
+    /**
+     * アプリを削除。職員ログインと設定パスワードの確認の両方が必要。
+     * 戻り値は { ok, message, app_name, image_paths }
+     */
+    appDelete: function (token, settingsToken, appId) {
+      return rpc('appshare_app_delete', {
+        p_token: token,
+        p_settings_token: settingsToken,
+        p_app_id: appId
+      }).then(function (rows) {
+        return (rows && rows[0]) || { ok: false, message: '削除できませんでした' };
+      });
+    },
+
+    /**
      * アプリを登録。職員ログインと設定パスワードの確認の両方が必要。
      * 戻り値は { ok, message, app_id, app_name }
      */
