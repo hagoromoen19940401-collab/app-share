@@ -2852,3 +2852,74 @@ svg {
   .detail__info-row { padding: 11px 14px; gap: 12px; }
   .detail__info dt { width: 52px; }
 }
+
+/* =========================================================
+   UIリニューアル 第5段階（全体の最終調整）
+   ・新しいデザインは加えず、ばらつきだけをそろえる
+   ========================================================= */
+
+/* ---------- カードの見出しをそろえる（ファイル / チャット） ---------- */
+.panel__head .section-title,
+.comments__head .section-title {
+  font-size: 15.5px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.panel__note,
+.comments__count { font-size: 12.5px; color: var(--text-weak); }
+
+/* ---------- PCで横に間延びしないよう、本文と入力欄の最大幅をそろえる ---------- */
+.detail { max-width: none; }
+
+.tabpanel { max-width: 960px; }
+
+.composer__box,
+.composer__preview,
+.composer__error,
+.composer__hint { max-width: 960px; }
+
+/* ---------- ボタンの高さをそろえる ---------- */
+/* :where() で優先度を0にし、送信ボタンなど個別の指定を必ず優先させる */
+:where(.button) {
+  min-height: 38px;
+  justify-content: center;
+}
+
+/* ---------- 空状態のアイコンをそろえる（チャット0件など） ---------- */
+.empty__icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 12px;
+  padding: 9px;
+  border-radius: 11px;
+  background: var(--surface-sub);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text-weak);
+}
+
+.empty__text { font-size: 13.5px; line-height: 1.7; }
+
+/* ---------- ファイル一覧の余白をカードに合わせる ---------- */
+.file-row { padding: 13px 16px; }
+.file-row__label { font-size: 14.5px; }
+
+.panel .inline-notice--quiet { border-radius: var(--radius); }
+
+/* ---------- iPhone ---------- */
+@media (max-width: 760px) {
+  /* ボタンは押しやすい高さに（入力欄まわりは各段階の指定を優先） */
+  :where(.button) { min-height: 40px; }
+
+  /* ファイル一覧：窮屈にならないよう余白を少し詰める */
+  .file-row { padding: 12px 13px; gap: 10px; }
+
+  /* 上部のパンくずは1行に収め、タブとの間を詰める */
+  .workbar__crumbs { font-size: 11.5px; }
+  .workbar__tabs { margin-top: 8px; }
+}
+
+/* タッチ端末（iPhone / iPad）では「Command + Enter」の案内を出さない。PCでは表示する */
+@media (hover: none) and (pointer: coarse) {
+  .composer__hint { display: none; }
+}
