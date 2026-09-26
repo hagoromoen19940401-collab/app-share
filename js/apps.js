@@ -240,7 +240,6 @@
       return file.category === category.id;
     });
 
-    var isLatest = category.id === 'latest';
     var meta;
 
     if (registered.length) {
@@ -248,9 +247,6 @@
       meta = registered.map(function (file) {
         return Util.escapeHtml(file.label || file.id);
       }).join('　');
-    } else if (isLatest) {
-      meta = '登録日 ' + Util.escapeHtml(Util.formatDate(app.registeredAt)) +
-             '<span class="file-row__dot"></span>' + Util.escapeHtml(category.hint);
     } else {
       meta = Util.escapeHtml(category.hint);
     }
@@ -260,7 +256,7 @@
       : '<span class="badge">ファイル未登録</span>';
 
     return '' +
-      '<li class="file-row' + (isLatest ? ' file-row--primary' : '') + '">' +
+      '<li class="file-row">' +
         icon(FILE_ICONS[category.id] || 'file', 'file-row__icon') +
         '<span class="file-row__body">' +
           '<span class="file-row__label">' + Util.escapeHtml(category.label) + '</span>' +
@@ -283,7 +279,7 @@
       '<ul class="file-list">' + rows + '</ul>' +
       '<div class="inline-notice inline-notice--quiet">' +
         icon('info', 'inline-notice__icon') +
-        '<span>ファイルの登録はまだ行えません。最新版・過去バージョン・PDF・画像・説明資料を置けるようにする予定です。</span>' +
+        '<span>ファイルの登録はまだ行えません。PDF・画像・説明資料など、アプリに関する資料を置けるようにする予定です。</span>' +
       '</div>';
   }
 
