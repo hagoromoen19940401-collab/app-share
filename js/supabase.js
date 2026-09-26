@@ -26,6 +26,9 @@
   // チャットの写真を扱う Edge Function
   var IMAGE_FUNCTION_URL = CONFIG.url + '/functions/v1/appshare-chat-image';
 
+  // チャット通知を送る Edge Function
+  var PUSH_FUNCTION_URL = CONFIG.url + '/functions/v1/appshare-push';
+
   var client = null;
 
   /** supabase-js のクライアントを1つだけ作って使い回す */
@@ -192,6 +195,29 @@
     imageDelete: function (token, paths) {
       var list = [].concat(paths || []);
       return callImageFunction({ action: 'delete-object', token: token, paths: list });
+    },
+
+    /** チャット通知の端末登録（職員ログインのみ必要）。{ ok, message } を返す */
+    pushSubscribe: function (token, endpoint, p256dh, auth) {
+      return rpc('appshare_push_subscribe', {
+        p_token: token, p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth
+      }).then(function (rows) {
+        return (rows && rows[0]) || { ok: false, message: '通知を登録できませんでした' };
+      });
+    },
+
+    /** チャット通知の端末登録を解除する */
+    pushUnsubscribe: function (token, endpoint) {
+      return rpc('appshare_push_unsubscribe', { p_token: token, p_endpoint: endpoint });
+    },
+
+    /** 投稿したコメントについて、他の職員へ通知を送る */
+    pushNotify: function (token, commentId) {
+      return fetch(PUSH_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'notify', token: token, comment_id: commentId })
+      }).then(readFunctionResponse);
     },
 
     /**

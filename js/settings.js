@@ -821,8 +821,24 @@
       '</section>';
   }
 
+  /**
+   * 「チャット通知」欄を先頭に置く。
+   * 職員ログインだけで操作でき、設定パスワードの確認は不要。
+   */
+  function mountPush() {
+    if (!global.AppSharePush) { return; }
+    els.body.insertAdjacentHTML('afterbegin', '<div id="pushArea"></div>');
+    global.AppSharePush.mount(document.getElementById('pushArea'), {
+      onRequireLogin: function () {
+        close();
+        if (hooks.onRequireLogin) { hooks.onRequireLogin(); }
+      }
+    });
+  }
+
   function renderGate(mode) {
     els.body.innerHTML = gateHtml(mode);
+    mountPush();
 
     var ids = mode === 'init' ? ['gateNew', 'gateConfirm'] : ['gatePassword'];
 
@@ -930,6 +946,7 @@
     appBusy = false;
     els.body.innerHTML = bodyHtml();
     bindBody();
+    mountPush();
 
     if (!Api.isReady()) {
       showMessage('Supabaseに接続できませんでした。通信状態をご確認ください。', 'error');

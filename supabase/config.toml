@@ -419,3 +419,6 @@ enabled = true
 # 関数の中で appshare_staff_sessions のトークンを検証する。
 [functions.appshare-chat-image]
 verify_jwt = false
+
+[functions.appshare-push]
+verify_jwt = false

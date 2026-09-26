@@ -877,7 +877,12 @@
           p_body:   text
         });
 
-    posting.then(function () {
+    posting.then(function (result) {
+      // 他の職員へ通知する（投稿の成否には影響させない）
+      // 文章だけ: RPCの行の配列 / 写真つき: { ok, comment }
+      var added = Array.isArray(result) ? result[0] : (result && result.comment);
+      if (added && added.id && global.AppSharePush) { global.AppSharePush.notify(added.id); }
+
       input.value = '';
       if (els.composerEl.autoResize) { els.composerEl.autoResize(); }
       clearPendingImages();

@@ -73,6 +73,11 @@
   }
 
   function logout() {
+    // この端末のチャット通知も解除する（ログアウト後に通知が届かないように）
+    var current = getSession();
+    if (current && global.AppSharePush) {
+      global.AppSharePush.disable(current.token).catch(function () { /* 解除できなくてもログアウトは続ける */ });
+    }
     writeRaw(null);
     if (onChange) { onChange(null); }
   }
