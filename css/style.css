@@ -2656,3 +2656,199 @@ svg {
 
   #settingsModal .modal__close { display: flex; width: 40px; height: 40px; }
 }
+
+/* =========================================================
+   UIリニューアル 第4段階（アプリ一覧・概要画面）
+   ・見た目だけを上書きする。JavaScript が使う id / クラス名は変えない
+   ========================================================= */
+
+/* ---------- アプリ一覧（サイドバー） ---------- */
+.sidebar__head { padding: 20px 22px 12px; }
+
+.sidebar__nav { padding: 0 12px 16px; }
+
+.app-item {
+  min-height: 52px;
+  gap: 12px;
+  padding: 8px 10px 8px 12px;
+  margin-bottom: 4px;
+}
+
+.app-item__body { flex: 1; min-width: 0; }
+
+/* アプリ名を一番目立たせる */
+.app-item__name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* 説明（なければ登録日）は1行の補助表示 */
+.app-item__meta {
+  margin-top: 1px;
+  font-size: 11.5px;
+  color: var(--text-weak);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 未選択は控えめ */
+.app-item:not(.is-active) .app-item__tile { color: var(--text-weak); }
+.app-item:not(.is-active):hover .app-item__tile { color: var(--text-sub); }
+
+.app-item.is-active .app-item__name { font-weight: 700; }
+
+/* ---------- 一覧の空状態 ---------- */
+.sidebar-empty { padding: 28px 16px; }
+
+.sidebar-empty__icon {
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 12px;
+  padding: 9px;
+  border-radius: 11px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text-weak);
+}
+
+.sidebar-empty__title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+
+.sidebar-empty__text { margin-top: 2px; font-size: 12.5px; }
+
+.sidebar-empty__button { min-height: 38px; margin-top: 14px; }
+
+/* ---------- 右側の空状態（未ログイン / アプリ未登録） ---------- */
+.login-prompt__box { padding: 36px 30px 32px; }
+
+.login-prompt__icon {
+  width: 52px;
+  height: 52px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.login-prompt__title { font-size: 17px; }
+
+.login-prompt__text { font-size: 13.5px; line-height: 1.7; }
+
+/* ---------- 概要画面 ---------- */
+.detail { max-width: 880px; }
+
+.detail__head { align-items: center; gap: 16px; }
+
+.detail__icon {
+  width: 52px;
+  height: 52px;
+  padding: 12px;
+  border-radius: 13px;
+}
+
+.detail__name {
+  font-size: 23px;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
+
+.detail__meta { margin-top: 6px; }
+
+.detail__description {
+  margin-top: 18px;
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--text-sub);
+  white-space: pre-wrap;
+}
+
+/* アプリを開く：メイン操作 */
+.detail__actions { margin-top: 22px; }
+
+.detail__open {
+  min-height: 44px;
+  padding: 10px 22px;
+  font-size: 14.5px;
+}
+
+.detail__open .button__icon { width: 17px; height: 17px; }
+
+/* アプリ情報（URL / 登録日） */
+.detail__info {
+  margin: 24px 0 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-sub);
+  overflow: hidden;
+}
+
+.detail__info-row {
+  display: flex;
+  gap: 16px;
+  padding: 11px 16px;
+  font-size: 13.5px;
+}
+
+.detail__info-row + .detail__info-row { border-top: 1px solid var(--line); }
+
+.detail__info dt {
+  flex: none;
+  width: 64px;
+  font-weight: 600;
+  color: var(--text-weak);
+}
+
+.detail__info dd {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-sub);
+}
+
+/* 長いURLは1行で省略（…） */
+.detail__info .detail__url {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* チャットへの案内 */
+.detail__tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--text-weak);
+}
+
+.detail__tip-icon { width: 16px; height: 16px; flex: none; margin-top: 2px; }
+
+/* ---------- iPhone ---------- */
+@media (max-width: 760px) {
+  /* 引き出しの一覧：タップしやすい高さ（44px以上） */
+  .app-item { min-height: 56px; padding: 9px 10px 9px 12px; }
+  .app-item__name { font-size: 15px; }
+  .app-item__meta { font-size: 12px; }
+
+  .login-prompt { padding: 16px; }
+  .login-prompt__box { padding: 30px 20px 26px; }
+
+  .detail__head { gap: 12px; }
+  .detail__icon { width: 46px; height: 46px; padding: 11px; }
+  .detail__name { font-size: 20px; }
+  .detail__description { margin-top: 14px; font-size: 15px; }
+
+  /* アプリを開くは画面幅いっぱいのボタン */
+  .detail__actions .detail__open { width: 100%; justify-content: center; min-height: 48px; }
+
+  .detail__info-row { padding: 11px 14px; gap: 12px; }
+  .detail__info dt { width: 52px; }
+}

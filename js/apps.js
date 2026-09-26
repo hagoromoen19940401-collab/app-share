@@ -97,7 +97,9 @@
   function appItemHtml(app) {
     var count = global.AppShareChat.countFor(app.id);
     var active = app.id === currentAppId;
-    var meta = '登録 ' + Util.escapeHtml(Util.formatDate(app.registeredAt));
+    var meta = app.description
+      ? Util.escapeHtml(app.description)
+      : '登録 ' + Util.escapeHtml(Util.formatDate(app.registeredAt));
 
     return '' +
       '<button class="app-item' + (active ? ' is-active' : '') + '" type="button" ' +
@@ -117,6 +119,7 @@
     if (!loggedIn) {
       els.listEl.innerHTML = '' +
         '<div class="sidebar-empty">' +
+          icon('folder', 'sidebar-empty__icon') +
           '<p class="sidebar-empty__text">ログインするとアプリ一覧が表示されます</p>' +
           '<button class="button button--ghost sidebar-empty__button" type="button" data-login>ログイン</button>' +
         '</div>';
@@ -129,7 +132,9 @@
     if (!list.length) {
       els.listEl.innerHTML = '' +
         '<div class="sidebar-empty">' +
-          '<p class="sidebar-empty__text">まだアプリが登録されていません</p>' +
+          icon('folder', 'sidebar-empty__icon') +
+          '<p class="sidebar-empty__title">まだアプリが登録されていません</p>' +
+          '<p class="sidebar-empty__text">設定からアプリを登録してください</p>' +
           '<button class="button button--ghost sidebar-empty__button" type="button" data-open-settings>' +
             '設定から登録' +
           '</button>' +
@@ -173,11 +178,7 @@
      概要タブ
      --------------------------------------------------------- */
   function renderDetail(app) {
-    var meta =
-      '<span class="detail__meta-item">登録日 ' + Util.escapeHtml(Util.formatDate(app.registeredAt)) + '</span>' +
-      '<span class="badge badge--running">登録済み</span>';
-
-    var hint = '<span class="detail__hint detail__url">' + Util.escapeHtml(app.path) + '</span>';
+    var meta = '<span class="badge badge--running">登録済み</span>';
 
     var description = app.description
       ? '<p class="detail__description">' + Util.escapeHtml(app.description) + '</p>'
@@ -195,17 +196,32 @@
       description +
 
       '<div class="detail__actions">' +
-        '<button class="button" type="button" id="openAppButton">' +
+        '<button class="button detail__open" type="button" id="openAppButton">' +
           icon('external', 'button__icon') +
           '<span>アプリを開く</span>' +
         '</button>' +
-        hint +
       '</div>' +
 
       '<div class="inline-notice" id="openNotice" hidden>' +
         icon('alert', 'inline-notice__icon') +
         '<span id="openNoticeText"></span>' +
-      '</div>';
+      '</div>' +
+
+      '<dl class="detail__info">' +
+        '<div class="detail__info-row">' +
+          '<dt>URL</dt>' +
+          '<dd class="detail__url">' + Util.escapeHtml(app.path) + '</dd>' +
+        '</div>' +
+        '<div class="detail__info-row">' +
+          '<dt>登録日</dt>' +
+          '<dd>' + Util.escapeHtml(Util.formatDate(app.registeredAt)) + '</dd>' +
+        '</div>' +
+      '</dl>' +
+
+      '<p class="detail__tip">' +
+        icon('info', 'detail__tip-icon') +
+        '<span>使ってみた感想や不具合は「チャット」タブに書き込めます。</span>' +
+      '</p>';
 
     var openButton = document.getElementById('openAppButton');
     if (openButton) {
