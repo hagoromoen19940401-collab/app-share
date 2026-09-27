@@ -2953,9 +2953,9 @@ svg {
 
 /* =========================================================
    マスコット（画面右下）
-   ・クリック・タップは受け付けない（下のボタンをふさがない）
+   ・ドラッグ（マウス・指）で好きな位置に動かせる。位置は js/mascot.js が保存する
    ・モーダル（z-index: 50）や写真の拡大表示より下に表示する
-   ・チャット入力欄が出ている間は、js/mascot.js がその上に移動させる
+   ・チャット入力欄が出ている間は、js/mascot.js が入力欄に重ならない高さに上げる
    ========================================================= */
 .mascot {
   position: fixed;
@@ -2963,15 +2963,26 @@ svg {
   bottom: max(16px, env(safe-area-inset-bottom));
   z-index: 40;
   width: 110px;
-  pointer-events: none;
+  cursor: grab;
+  touch-action: none;              /* マスコットの上で指を動かしたときは、画面をスクロールさせずに移動する */
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
   transition: bottom .2s ease;
+}
+
+.mascot.is-dragging {
+  cursor: grabbing;
+  transition: none;
 }
 
 .mascot[hidden] { display: none; }
 
 .mascot__img {
   display: block;
+  -webkit-touch-callout: none;     /* iPhoneの長押しメニュー（画像の保存など）を出さない */
+  pointer-events: none;
   width: 100%;
   height: auto;
   filter: drop-shadow(0 3px 6px rgba(40, 36, 30, 0.14));
