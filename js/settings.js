@@ -812,11 +812,6 @@
         '</div>';
 
     return '' +
-      '<div class="settings-group">' +
-        '<div class="settings-group__head"><h3 class="settings-group__title">自分の設定</h3></div>' +
-        '<div id="pushArea"></div>' +
-      '</div>' +
-
       '<div class="settings-group settings-group--admin">' +
         adminHeadHtml(false) +
       '<section class="settings-section settings-lock">' +
@@ -870,7 +865,6 @@
 
   function renderGate(mode) {
     els.body.innerHTML = gateHtml(mode);
-    mountPush();
 
     var ids = mode === 'init' ? ['gateNew', 'gateConfirm'] : ['gatePassword'];
 

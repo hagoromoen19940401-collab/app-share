@@ -115,9 +115,10 @@
   function appItemHtml(app) {
     var count = global.AppShareChat.countFor(app.id);
     var active = app.id === currentAppId;
-    var meta = app.description
+    // 全体チャットは名前だけを表示する
+    var meta = app.general ? '' : (app.description
       ? Util.escapeHtml(app.description)
-      : '登録 ' + Util.escapeHtml(Util.formatDate(app.registeredAt));
+      : '登録 ' + Util.escapeHtml(Util.formatDate(app.registeredAt)));
 
     return '' +
       '<button class="app-item' + (active ? ' is-active' : '') + (app.general ? ' app-item--general' : '') + '" type="button" ' +
@@ -127,7 +128,7 @@
         '</span>' +
         '<span class="app-item__body">' +
           '<span class="app-item__name">' + Util.escapeHtml(app.name) + '</span>' +
-          '<span class="app-item__meta">' + meta + '</span>' +
+          (meta ? '<span class="app-item__meta">' + meta + '</span>' : '') +
         '</span>' +
         (count ? '<span class="app-item__count">' + count + '</span>' : '') +
       '</button>';
