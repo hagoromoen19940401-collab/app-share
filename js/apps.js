@@ -14,6 +14,7 @@
      線画アイコン（絵文字は使わない）
      --------------------------------------------------------- */
   var ICONS = {
+    chat:      '<path d="M4 5.5h16v10.5H9.5L5.5 19.5V16H4z"/><path d="M8 9.5h8M8 12.5h5"/>',
     note:      '<path d="M6 3.5h9l4 4v13H6z"/><path d="M15 3.5v4h4"/><path d="M9 12h7M9 15.5h5"/>',
     external:  '<path d="M14 4.5h5.5V10"/><path d="M19.5 4.5L11 13"/><path d="M18 14v5.5H4.5V6H10"/>',
     alert:     '<path d="M12 4.5l8.5 15H3.5z"/><path d="M12 10v4"/><path d="M12 16.8v.2"/>',
@@ -52,7 +53,24 @@
   /* ---------------------------------------------------------
      アプリ検索
      --------------------------------------------------------- */
+  /**
+   * 全体チャット。アプリに関係ない連絡・相談・共有用。
+   * コメントは既存の appshare_comments に、予約した app_id（__general__）で保存する。
+   * 登録アプリの id は uuid のため衝突しない。
+   */
+  var GENERAL_ID = '__general__';
+  var GENERAL = {
+    id: GENERAL_ID,
+    name: '全体チャット',
+    description: 'アプリに関係ない連絡・相談・共有',
+    registeredAt: '',
+    path: '',
+    icon: 'chat',
+    general: true
+  };
+
   function findApp(appId) {
+    if (appId === GENERAL_ID) { return loggedIn ? GENERAL : null; }
     var list = allApps();
     for (var i = 0; i < list.length; i++) {
       if (list[i].id === appId) { return list[i]; }
@@ -102,7 +120,7 @@
       : '登録 ' + Util.escapeHtml(Util.formatDate(app.registeredAt));
 
     return '' +
-      '<button class="app-item' + (active ? ' is-active' : '') + '" type="button" ' +
+      '<button class="app-item' + (active ? ' is-active' : '') + (app.general ? ' app-item--general' : '') + '" type="button" ' +
           'data-app-id="' + Util.escapeHtml(app.id) + '"' + (active ? ' aria-current="true"' : '') + '>' +
         '<span class="app-item__tile" aria-hidden="true">' +
           '<svg viewBox="0 0 24 24">' + (ICONS[app.icon] || ICONS.note) + '</svg>' +
@@ -128,9 +146,10 @@
     }
 
     var list = allApps();
+    var general = appItemHtml(GENERAL) + '<div class="sidebar__divider">アプリ</div>';
 
     if (!list.length) {
-      els.listEl.innerHTML = '' +
+      els.listEl.innerHTML = general +
         '<div class="sidebar-empty">' +
           icon('folder', 'sidebar-empty__icon') +
           '<p class="sidebar-empty__title">まだアプリが登録されていません</p>' +
@@ -143,7 +162,7 @@
       return;
     }
 
-    els.listEl.innerHTML = list.map(appItemHtml).join('');
+    els.listEl.innerHTML = general + list.map(appItemHtml).join('');
     if (els.countEl) { els.countEl.textContent = list.length; }
   }
 
@@ -151,6 +170,16 @@
      右側の上部：現在のアプリ名とタブ
      --------------------------------------------------------- */
   function renderWorkbar(app) {
+    if (app.general) {
+      els.workbarEl.innerHTML = '' +
+        '<div class="workbar__crumbs">' +
+          icon('chat', 'workbar__crumb-icon') +
+          '<span class="workbar__current">全体チャット</span>' +
+        '</div>' +
+        '<p class="workbar__note">' + Util.escapeHtml(GENERAL.description) + '</p>';
+      return;
+    }
+
     var commentCount = global.AppShareChat.countFor(app.id);
 
     var tabs = TABS.map(function (tab) {
@@ -337,8 +366,10 @@
       currentAppId = appId;
       renderList();
       renderWorkbar(app);
-      renderDetail(app);
-      renderFiles(app);
+      if (!app.general) {
+        renderDetail(app);
+        renderFiles(app);
+      }
       return app;
     },
 
@@ -370,6 +401,9 @@
     },
 
     getCurrentId: function () { return currentAppId; },
+
+    /** 全体チャットの app_id */
+    GENERAL_ID: GENERAL_ID,
 
     /** ログイン状態を伝える。未ログインならアプリ一覧を出さない */
     setLoggedIn: function (value) {

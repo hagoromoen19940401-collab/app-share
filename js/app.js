@@ -61,8 +61,10 @@
    */
   function applyAppsState() {
     var list = Apps.list();
+    var generalOpen = Apps.getCurrentId() === Apps.GENERAL_ID;
 
-    if (!list.length) {
+    // アプリが0件でも、全体チャットを開いている間はそのまま表示する
+    if (!list.length && !generalOpen) {
       dom.emptyApps.hidden = false;
       dom.workbar.hidden = true;
       dom.mainScroll.hidden = true;
@@ -141,7 +143,8 @@
   /* ---------------------------------------------------------
      タブの切り替え（ページ遷移はしない）
      --------------------------------------------------------- */
-  function showTab(tabId) {
+  /** persist が false のときは、選んだタブを保存しない（全体チャット用） */
+  function showTab(tabId, persist) {
     Apps.tabs.forEach(function (tab) {
       dom.panels[tab.id].hidden = (tab.id !== tabId);
     });
@@ -153,6 +156,7 @@
     // チャットタブを見ている間だけ再取得する
     Chat.setActive(tabId === 'chat');
 
+    if (persist === false) { return; }
     try { global.localStorage.setItem(TAB_KEY, tabId); } catch (e) { /* 保存できなくても動作する */ }
   }
 
@@ -166,11 +170,32 @@
   /* ---------------------------------------------------------
      アプリの選択
      --------------------------------------------------------- */
+  var PLACEHOLDER_APP     = 'このアプリについてのコメントを入力';
+  var PLACEHOLDER_GENERAL = '全体への連絡・相談を入力';
+
   function selectApp(appId) {
+    var wasGeneral = Apps.getCurrentId() === Apps.GENERAL_ID;
     var app = Apps.select(appId);
     if (!app) { return; }
 
+    // アプリが0件の案内が出ていても、選んだ画面を表示する
+    dom.emptyApps.hidden = true;
+    dom.workbar.hidden = false;
+    dom.mainScroll.hidden = false;
+
     Chat.show(appId);
+
+    // 全体チャットは概要・ファイルを出さず、チャットを直接表示する。
+    // アプリに戻ったときは、そのアプリで使っていたタブに戻す。
+    if (app.general) {
+      showTab('chat', false);
+    } else if (wasGeneral) {
+      showTab(Apps.getTab());
+    }
+
+    var input = document.getElementById('commentInput');
+    if (input) { input.placeholder = app.general ? PLACEHOLDER_GENERAL : PLACEHOLDER_APP; }
+
     dom.mainScroll.scrollTop = 0;
     setSidebar(false);
 
