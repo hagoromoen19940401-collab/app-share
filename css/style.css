@@ -2950,3 +2950,79 @@ svg {
   font-size: 12.5px;
   color: var(--text-weak);
 }
+
+/* =========================================================
+   マスコット（画面右下）
+   ・クリック・タップは受け付けない（下のボタンをふさがない）
+   ・モーダル（z-index: 50）や写真の拡大表示より下に表示する
+   ・チャット入力欄が出ている間は、js/mascot.js がその上に移動させる
+   ========================================================= */
+.mascot {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 40;
+  width: 110px;
+  pointer-events: none;
+  user-select: none;
+  transition: bottom .2s ease;
+}
+
+.mascot[hidden] { display: none; }
+
+.mascot__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 3px 6px rgba(40, 36, 30, 0.14));
+  transform-origin: 50% 100%;
+}
+
+/* 通常時：ゆっくり上下にふわっと */
+.mascot--idle .mascot__img  { animation: mascot-float 3.2s ease-in-out infinite; }
+
+/* あいさつ：軽く左右に傾く */
+.mascot--wave .mascot__img  { animation: mascot-wave 0.9s ease-in-out infinite; }
+
+/* 処理中：少し左右に揺れる */
+.mascot--walk .mascot__img  { animation: mascot-walk 0.7s ease-in-out infinite; }
+
+/* 成功時：少し大きくなって戻る */
+.mascot--cheer .mascot__img { animation: mascot-cheer 0.6s ease-out 1; }
+
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+
+@keyframes mascot-wave {
+  0%, 100% { transform: rotate(0deg); }
+  30%      { transform: rotate(-4deg) translateY(-2px); }
+  70%      { transform: rotate(3deg); }
+}
+
+@keyframes mascot-walk {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25%      { transform: translateX(-3px) rotate(-2deg); }
+  75%      { transform: translateX(3px) rotate(2deg); }
+}
+
+@keyframes mascot-cheer {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.1) translateY(-4px); }
+  100% { transform: scale(1); }
+}
+
+/* iPhone：少し小さめ */
+@media (max-width: 760px) {
+  .mascot {
+    width: 80px;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+/* 動きを減らす設定の端末では、アニメーションしない */
+@media (prefers-reduced-motion: reduce) {
+  .mascot__img { animation: none !important; }
+}
