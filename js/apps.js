@@ -176,8 +176,7 @@
         '<div class="workbar__crumbs">' +
           icon('chat', 'workbar__crumb-icon') +
           '<span class="workbar__current">全体チャット</span>' +
-        '</div>' +
-        '<p class="workbar__note">' + Util.escapeHtml(GENERAL.description) + '</p>';
+        '</div>';
       return;
     }
 
