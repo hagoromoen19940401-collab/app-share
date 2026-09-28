@@ -16,6 +16,8 @@
 
      AppShareMascot.resetPosition()            保存した位置を消して右下に戻す
      AppShareMascot.say('送ったで！', 1500)      吹き出しを表示する（時間を省くと次に消すまで表示）
+     AppShareMascot.setVisible(false)          表示しない（端末ごとに保存。位置は消さない）
+     AppShareMascot.isVisible()                表示する設定かどうか
 
    マスコットはドラッグ（マウス・指）で好きな位置に動かせる。
    位置は端末内（localStorage）に、画面の右下からの距離で保存する。
@@ -34,6 +36,8 @@
   var missing = {};                    // 読み込めなかった画像
 
   var POSITION_KEY = 'app-share/mascot-position';
+  var VISIBLE_KEY = 'app-share/mascot-visible';     // '0' のときだけ表示しない（初期値は表示する）
+  var visible = true;                                // build() で保存値を読み込む
   var EDGE = 4;                        // 画面の端（セーフエリアの内側）からの最小の余白
   var DRAG_START = 6;                  // この距離（px）以上動いたらドラッグとみなす
   var TAP_MAX_MS = 500;                // これより長く押していたら長押し（タップにしない）
@@ -67,8 +71,9 @@
   function build() {
     if (root) { return; }
 
+    visible = readVisible();
     root = document.createElement('div');
-    root.className = 'mascot';
+    root.className = 'mascot' + (visible ? '' : ' is-off');
     root.setAttribute('aria-hidden', 'true');
     root.hidden = true;                // 画像が読み込めるまでは出さない
 
@@ -415,7 +420,7 @@
   function say(text, duration) {
     if (!root) { build(); }
     hideBubble();
-    if (!text) { return; }
+    if (!text || !visible) { return; }             // 表示しない設定のときは吹き出しも出さない
 
     bubbleText.textContent = String(text);
     bubble.classList.add('is-visible');
@@ -474,10 +479,39 @@
     start();
   }
 
+  /* ---------------------------------------------------------
+     表示する / 表示しない（端末ごとに localStorage へ保存）
+     表示しない間は、要素ごと隠すので状態の切り替え・吹き出し・ドラッグも見えない・効かない。
+     保存済みの位置はそのまま残す。
+     --------------------------------------------------------- */
+  function readVisible() {
+    try { return global.localStorage.getItem(VISIBLE_KEY) !== '0'; } catch (e) { return true; }
+  }
+
+  function setVisible(value) {
+    visible = !!value;
+    try { global.localStorage.setItem(VISIBLE_KEY, visible ? '1' : '0'); } catch (e) { /* 保存できなくてもその場では切り替わる */ }
+    if (!root) { return; }
+
+    if (!visible) {
+      hideBubble();
+      root.classList.remove('is-dragging');
+      root.classList.add('is-off');
+      return;
+    }
+
+    // 表示に戻したときは、通常の姿で保存位置（なければ右下）に出す
+    root.classList.remove('is-off');
+    setMascot('idle');
+    layout();
+  }
+
   global.AppShareMascot = {
     setMascot: setMascot,
     playMascot: playMascot,
     resetPosition: resetPosition,
-    say: say
+    say: say,
+    setVisible: setVisible,
+    isVisible: function () { return visible; }
   };
 })(window);

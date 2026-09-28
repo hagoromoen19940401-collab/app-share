@@ -129,6 +129,7 @@
       '<div class="settings-group">' +
         '<div class="settings-group__head"><h3 class="settings-group__title">自分の設定</h3></div>' +
         '<div id="pushArea"></div>' +
+        '<div id="mascotArea"></div>' +
         accountHtml() +
       '</div>' +
 
@@ -863,6 +864,39 @@
     });
   }
 
+  /** 「自分の設定」のマスコット表示カード（端末ごとの設定） */
+  function mountMascotSetting() {
+    var area = document.getElementById('mascotArea');
+    var Mascot = global.AppShareMascot;
+    if (!area || !Mascot || typeof Mascot.setVisible !== 'function') { return; }
+
+    function render() {
+      var on = Mascot.isVisible();
+      area.innerHTML = '' +
+        '<section class="settings-section">' +
+          '<div class="settings-section__head">' +
+            '<div>' +
+              '<h3 class="settings-section__title">マスコット表示</h3>' +
+              '<p class="settings-section__note">あぷりんくのキャラクターを表示します（この端末だけの設定）。</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="settings-row">' +
+            '<span class="settings-status' + (on ? ' settings-status--on' : '') + '">' +
+              (on ? '表示する' : '表示しない') + '</span>' +
+            '<button class="button' + (on ? ' button--ghost' : '') + '" type="button" id="mascotToggle">' +
+              (on ? '表示しないにする' : '表示するにする') + '</button>' +
+          '</div>' +
+        '</section>';
+
+      document.getElementById('mascotToggle').addEventListener('click', function () {
+        Mascot.setVisible(!Mascot.isVisible());
+        render();
+      });
+    }
+
+    render();
+  }
+
   function renderGate(mode) {
     els.body.innerHTML = gateHtml(mode);
 
@@ -973,6 +1007,7 @@
     els.body.innerHTML = bodyHtml();
     bindBody();
     mountPush();
+    mountMascotSetting();
 
     if (!Api.isReady()) {
       showMessage('Supabaseに接続できませんでした。通信状態をご確認ください。', 'error');

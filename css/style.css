@@ -2442,7 +2442,8 @@ svg {
 
 .settings-group > * + * { margin-top: 12px; }
 .settings-group > .settings-group__head + * { margin-top: 0; }
-#pushArea:empty { display: none; }
+#pushArea:empty,
+#mascotArea:empty { display: none; }
 #pushArea + .settings-section { margin-top: 12px; }
 
 /* カードの中の「ログインが必要です」などの案内は、余白を詰める */
@@ -2977,7 +2978,8 @@ svg {
   transition: none;
 }
 
-.mascot[hidden] { display: none; }
+.mascot[hidden],
+.mascot.is-off { display: none; }   /* 設定で「表示しない」にしたとき */
 
 .mascot__img {
   display: block;
