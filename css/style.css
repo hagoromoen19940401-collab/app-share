@@ -103,26 +103,10 @@ svg {
   min-width: 0;
 }
 
-.header__mark {
-  width: 22px;
-  height: 22px;
-  color: var(--accent);
-  flex: none;
-}
-
 .header__title {
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  white-space: nowrap;
-}
-
-.header__tag {
-  padding: 2px 8px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  font-size: 11px;
-  color: var(--text-weak);
   white-space: nowrap;
 }
 
@@ -1673,7 +1657,6 @@ svg {
   }
 
   .header__title { font-size: 15px; }
-  .header__tag { display: none; }
   .header__settings-label { display: none; }
   .header__login-label { display: none; }
   .header__login { padding: 7px 9px; }
@@ -1757,30 +1740,11 @@ svg {
 
 .header__brand { gap: 10px; }
 
-/* ブランドのマーク：メインカラーの角丸四角に白い線画 */
-.header__mark {
-  width: 32px;
-  height: 32px;
-  padding: 6px;
-  border-radius: 9px;
-  background: var(--accent);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
-}
-
 .header__title {
   font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--text);
-}
-
-.header__tag {
-  padding: 1px 8px;
-  border-color: var(--line);
-  background: var(--surface-sub);
-  font-size: 10.5px;
-  font-weight: 600;
 }
 
 /* 右側：職員名・ログアウト・ログイン・設定を1つのまとまりに */
@@ -1997,7 +1961,6 @@ svg {
     padding-right: max(12px, env(safe-area-inset-right));
   }
 
-  .header__mark { width: 30px; height: 30px; }
   .header__title { font-size: 16px; }
 
   /* ボタンは押しやすい大きさに（44px前後） */
@@ -3174,7 +3137,6 @@ svg {
   .header { gap: 6px; }
 
   .header__brand { flex: none; gap: 8px; }
-  .header__mark { width: 28px; height: 28px; padding: 5px; }
   .header__title { font-size: 15px; letter-spacing: 0.02em; }
 
   .header__session {
@@ -3207,7 +3169,7 @@ svg {
    ・3本線アイコン ＋「メニュー」
    ・iPhoneでは「メニュー」の文字を優先し、ログイン中の名前ピルは表示しない
      （名前は 設定 → 自分のアカウント で確認できる。PC / iPad は今までどおり表示）
-   ・340px 未満のとても狭い画面では、文字を隠してアイコンだけにする
+   ・300px 未満のとても狭い画面では、文字を隠してアイコンだけにする
    ========================================================= */
 .header__nav-label { display: none; }
 
@@ -3234,6 +3196,6 @@ svg {
   .header__session-text { display: none; }
 }
 
-@media (min-width: 340px) and (max-width: 760px) {
+@media (min-width: 300px) and (max-width: 760px) {
   .header__nav-label { display: inline; }
 }
