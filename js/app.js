@@ -200,7 +200,7 @@
     setSidebar(false);
 
     try { global.localStorage.setItem(SELECTED_KEY, appId); } catch (e) { /* 保存できなくても動作する */ }
-    document.title = app.name + ' / あぷりんく';
+    document.title = 'あぷりんく / ' + app.name;
   }
 
   function restoreSelectedApp() {
