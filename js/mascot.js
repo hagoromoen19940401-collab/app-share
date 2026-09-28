@@ -18,6 +18,11 @@
      AppShareMascot.say('送ったで！', 1500)      吹き出しを表示する（時間を省くと次に消すまで表示）
      AppShareMascot.setVisible(false)          表示しない（端末ごとに保存。位置は消さない）
      AppShareMascot.isVisible()                表示する設定かどうか
+     AppShareMascot.getScale()                 いまの大きさ（1 が標準）
+     AppShareMascot.resetScale()               大きさを標準に戻す
+
+   マスコットの大きさは、iPhone / iPad では2本指のピンチ、
+   PC ではマウスホイール（トラックパッド）で変えられる。0.7〜1.6倍。端末内に保存する。
 
    マスコットはドラッグ（マウス・指）で好きな位置に動かせる。
    位置は端末内（localStorage）に、画面の右下からの距離で保存する。
@@ -42,6 +47,11 @@
   var DRAG_START = 6;                  // この距離（px）以上動いたらドラッグとみなす
   var TAP_MAX_MS = 500;                // これより長く押していたら長押し（タップにしない）
   var TAP_MESSAGE = '今日もおつかれさま！';
+
+  var SCALE_KEY = 'app-share/mascot-scale';
+  var SCALE_MIN = 0.7;
+  var SCALE_MAX = 1.6;
+  var scale = 1;                       // build() で保存値を読み込む
 
   var saved = null;                    // 保存した位置 { right, bottom }（未保存なら null）
   var composerOffset = 0;              // チャット入力欄が出ているときの高さ＋余白
@@ -76,6 +86,8 @@
     root.className = 'mascot' + (visible ? '' : ' is-off');
     root.setAttribute('aria-hidden', 'true');
     root.hidden = true;                // 画像が読み込めるまでは出さない
+    scale = readScale();
+    root.style.setProperty('--mascot-scale', scale);
 
     img = document.createElement('img');
     img.className = 'mascot__img';
@@ -113,6 +125,7 @@
 
     saved = readPosition();
     bindDrag();
+    bindWheel();
     watchComposer();
     global.addEventListener('resize', layout);
     global.addEventListener('orientationchange', layout);
@@ -342,10 +355,50 @@
        安定しないことがあるため、指の操作はタッチイベントに任せる。
        マスコットの上で触り始めたときだけ反応し、ほかの場所のスクロールには影響しない。 */
     root.addEventListener('touchstart', function (event) {
-      if (event.touches.length !== 1) { return; }           // 2本指（拡大など）は無視
+      if (event.touches.length !== 1) { return; }           // 2本指はピンチ側で扱う
       var t = event.changedTouches[0];
       begin('touch-' + t.identifier, t.clientX, t.clientY);
     }, { passive: true });
+
+    /* --- 2本指のピンチで拡大縮小 ---
+       マスコットに1本目の指が触れている間に2本目が触れたら（2本目は画面のどこでもよい）、
+       ドラッグをやめてピンチにする。指の間隔の変化に合わせて大きさを変える。 */
+    var pinch = null;
+
+    function spread(touches) {
+      return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+    }
+
+    document.addEventListener('touchstart', function (event) {
+      if (!visible || pinch || event.touches.length !== 2) { return; }
+      var onMascot = drag && String(drag.id).indexOf('touch-') === 0;
+      if (!onMascot && !root.contains(event.target)) { return; }
+
+      // ドラッグ中に2本目が来たら、そこまで動かした位置は保存しておく
+      if (drag && drag.moved) {
+        root.classList.remove('is-dragging');
+        saved = drag.last || clamp(currentPos());
+        writePosition(saved);
+      }
+      drag = null;
+      var distance = spread(event.touches);
+      if (distance > 0) { pinch = { distance: distance, scale: scale }; }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function (event) {
+      if (!pinch) { return; }
+      event.preventDefault();                               // 画面全体の拡大・スクロールを止める
+      if (event.touches.length < 2) { return; }
+      setScale(pinch.scale * spread(event.touches) / pinch.distance, false);
+    }, { passive: false });
+
+    function pinchEnd(event) {
+      if (!pinch || event.touches.length >= 2) { return; }
+      pinch = null;
+      writeScale(scale);
+    }
+    document.addEventListener('touchend', pinchEnd);
+    document.addEventListener('touchcancel', pinchEnd);
 
     root.addEventListener('touchmove', function (event) {
       if (!drag) { return; }
@@ -388,6 +441,58 @@
 
     // 画像そのもののドラッグ（ブラウザ標準）は止める
     root.addEventListener('dragstart', function (event) { event.preventDefault(); });
+  }
+
+  /* ---------------------------------------------------------
+     大きさ（0.7〜1.6倍）
+     CSS の --mascot-scale で横幅を変える（吹き出しの文字の大きさは変えない）。
+     右下からの位置はそのままなので、大きくすると左上に広がる。
+     --------------------------------------------------------- */
+  function clampScale(value) {
+    return Math.min(Math.max(value, SCALE_MIN), SCALE_MAX);
+  }
+
+  function readScale() {
+    try {
+      var value = parseFloat(global.localStorage.getItem(SCALE_KEY));
+      if (isFinite(value)) { return clampScale(value); }
+    } catch (e) { /* 読めなければ標準 */ }
+    return 1;
+  }
+
+  function writeScale(value) {
+    try {
+      if (value === 1) {
+        global.localStorage.removeItem(SCALE_KEY);
+      } else {
+        global.localStorage.setItem(SCALE_KEY, String(Math.round(value * 100) / 100));
+      }
+    } catch (e) { /* 保存できなくても、その場では変えられる */ }
+  }
+
+  /** 大きさを変える。save が false のときは保存しない（ピンチの途中など） */
+  function setScale(value, save) {
+    scale = Math.round(clampScale(value) * 100) / 100;
+    if (save !== false) { writeScale(scale); }
+    if (!root) { return; }
+    root.style.setProperty('--mascot-scale', scale);
+    layout();                          // 大きくなっても画面の外に出ないように直す
+  }
+
+  function resetScale() {
+    setScale(1);
+  }
+
+  /** PC：マスコットの上でホイール（トラックパッドの2本指・ピンチ）を回すと拡大縮小 */
+  function bindWheel() {
+    root.addEventListener('wheel', function (event) {
+      if (!visible) { return; }
+      event.preventDefault();                               // ページのスクロール・拡大はしない
+      var delta = event.deltaY * (event.deltaMode === 1 ? 16 : 1);
+      // トラックパッドのピンチ（ctrlKey付き）は値が小さいので、感度を上げる
+      var rate = event.ctrlKey ? 0.01 : 0.0015;
+      setScale(scale * Math.exp(-delta * rate));
+    }, { passive: false });
   }
 
   /** タップされたときのリアクション（あいさつして、少しして通常に戻る） */
@@ -512,6 +617,8 @@
     resetPosition: resetPosition,
     say: say,
     setVisible: setVisible,
-    isVisible: function () { return visible; }
+    isVisible: function () { return visible; },
+    getScale: function () { return scale; },
+    resetScale: resetScale
   };
 })(window);

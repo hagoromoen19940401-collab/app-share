@@ -870,8 +870,17 @@
     var Mascot = global.AppShareMascot;
     if (!area || !Mascot || typeof Mascot.setVisible !== 'function') { return; }
 
+    // 大きさ（標準は 1）。古い mascot.js でも動くよう、無ければ大きさの行は出さない
+    var canScale = typeof Mascot.getScale === 'function' && typeof Mascot.resetScale === 'function';
+
+    function sizeLabel(value) {
+      var name = value < 0.95 ? '小さめ' : (value > 1.05 ? '大きめ' : '標準');
+      return name + '（' + Math.round(value * 100) + '%）';
+    }
+
     function render() {
       var on = Mascot.isVisible();
+      var scale = canScale ? Mascot.getScale() : 1;
       area.innerHTML = '' +
         '<section class="settings-section">' +
           '<div class="settings-section__head">' +
@@ -886,12 +895,30 @@
             '<button class="button' + (on ? ' button--ghost' : '') + '" type="button" id="mascotToggle">' +
               (on ? '表示しないにする' : '表示するにする') + '</button>' +
           '</div>' +
+          (canScale
+            ? '<div class="settings-row">' +
+                '<span class="settings-status">大きさ：' + sizeLabel(scale) + '</span>' +
+                '<button class="button button--ghost" type="button" id="mascotScaleReset"' +
+                  (scale === 1 ? ' disabled' : '') + '>標準に戻す</button>' +
+              '</div>' +
+              '<p class="settings-section__note settings-mascot-hint">' +
+                'iPhone / iPad は2本指でつまむ、PC はマスコットの上でホイールを回すと大きさを変えられます。' +
+              '</p>'
+            : '') +
         '</section>';
 
       document.getElementById('mascotToggle').addEventListener('click', function () {
         Mascot.setVisible(!Mascot.isVisible());
         render();
       });
+
+      var resetButton = document.getElementById('mascotScaleReset');
+      if (resetButton) {
+        resetButton.addEventListener('click', function () {
+          Mascot.resetScale();
+          render();
+        });
+      }
     }
 
     render();

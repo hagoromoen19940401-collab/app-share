@@ -2913,7 +2913,7 @@ svg {
   right: max(16px, env(safe-area-inset-right));
   bottom: max(16px, env(safe-area-inset-bottom));
   z-index: 40;
-  width: 110px;
+  width: calc(110px * var(--mascot-scale, 1));   /* 大きさは js/mascot.js が --mascot-scale で変える */
   cursor: grab;
   touch-action: none;              /* マスコットの上で指を動かしたときは、画面をスクロールさせずに移動する */
   user-select: none;
@@ -2979,7 +2979,7 @@ svg {
 /* iPhone：少し小さめ */
 @media (max-width: 760px) {
   .mascot {
-    width: 80px;
+    width: calc(80px * var(--mascot-scale, 1));
     right: max(10px, env(safe-area-inset-right));
     bottom: max(12px, env(safe-area-inset-bottom));
   }
@@ -3825,3 +3825,35 @@ body {
 @media (max-width: 760px) {
   .header__actions { gap: 6px; }
 }
+
+/* =========================================================
+   マスコットの吹き出し：丸ゴシックでやわらかく
+   ・外部フォントは読み込まず、端末にある丸ゴシックを使う（無ければ通常の文字）
+   ========================================================= */
+.mascot__bubble {
+  padding: 8px 14px;
+  border: 1.5px solid #cfe3dd;
+  border-radius: 16px;
+  background: #fffdf8;
+  box-shadow: 0 4px 14px rgba(47, 111, 104, 0.14);
+  font-family: "Hiragino Maru Gothic ProN", "Hiragino Maru Gothic Pro", "ヒラギノ丸ゴ ProN",
+               "HG丸ｺﾞｼｯｸM-PRO", "Zen Maru Gothic", "M PLUS Rounded 1c", "Kosugi Maru", var(--font);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.55;
+  color: var(--accent-dark);
+}
+
+.mascot__bubble::after {
+  background: #fffdf8;
+  border-right: 1.5px solid #cfe3dd;
+  border-bottom: 1.5px solid #cfe3dd;
+  border-bottom-right-radius: 3px;
+}
+
+@media (max-width: 760px) {
+  .mascot__bubble { padding: 7px 12px; border-radius: 14px; }
+}
+
+/* 設定：マスコットの大きさの案内 */
+.settings-mascot-hint { margin-top: 10px; }
