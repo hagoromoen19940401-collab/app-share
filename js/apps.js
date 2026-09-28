@@ -110,7 +110,7 @@
   }
 
   /* ---------------------------------------------------------
-     左側：アプリ一覧（共有フォルダの一覧として見せる）
+     左側：全体チャット（独立したカード）＋ 公開アプリの一覧
      --------------------------------------------------------- */
   function appItemHtml(app) {
     var count = global.AppShareChat.countFor(app.id);
@@ -147,7 +147,12 @@
     }
 
     var list = allApps();
-    var general = appItemHtml(GENERAL) + '<div class="sidebar__divider">アプリ</div>';
+    var general = '' +
+      '<div class="sidebar__general">' + appItemHtml(GENERAL) + '</div>' +
+      '<div class="sidebar__section">' +
+        '<span class="sidebar__section-title">公開アプリ</span>' +
+        (list.length ? '<span class="sidebar__section-count">' + list.length + '</span>' : '') +
+      '</div>';
 
     if (!list.length) {
       els.listEl.innerHTML = general +
@@ -196,7 +201,7 @@
     els.workbarEl.innerHTML = '' +
       '<div class="workbar__crumbs">' +
         icon('folder', 'workbar__crumb-icon') +
-        '<span class="workbar__crumb">共有フォルダ</span>' +
+        '<span class="workbar__crumb">公開アプリ</span>' +
         icon('chevron', 'workbar__sep') +
         '<span class="workbar__current">' + Util.escapeHtml(app.name) + '</span>' +
       '</div>' +
