@@ -3761,3 +3761,34 @@ body {
 }
 
 /* ========== UI遊び版 試作 ここまで ========== */
+
+/* =========================================================
+   ヘッダーのロゴ画像（assets/applink-logo.png）
+   ・縦横比はそのまま（高さだけ指定し、横幅は自動）
+   ========================================================= */
+.header__logo {
+  display: block;
+  height: 44px;
+  width: auto;
+  max-width: 100%;
+  flex: none;
+  object-fit: contain;
+}
+
+/* iPad 縦向きなど */
+@media (max-width: 1024px) {
+  .header__logo { height: 40px; }
+}
+
+/* iPhone：メニュー・ログアウト・設定と1行に収まる大きさ
+   幅が足りないときはロゴが縮む（縦横比は object-fit で保つ） */
+@media (max-width: 760px) {
+  .header__brand { flex: 0 1 auto; min-width: 0; }
+  .header__logo { height: 30px; object-position: left center; }
+  .header__logout { flex: none; white-space: nowrap; }
+}
+
+/* とても狭い画面（初代 iPhone SE など）：少し小さく */
+@media (max-width: 360px) {
+  .header__logo { height: 24px; }
+}
