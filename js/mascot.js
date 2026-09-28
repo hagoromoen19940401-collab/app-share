@@ -46,7 +46,29 @@
   var EDGE = 4;                        // 画面の端（セーフエリアの内側）からの最小の余白
   var DRAG_START = 6;                  // この距離（px）以上動いたらドラッグとみなす
   var TAP_MAX_MS = 500;                // これより長く押していたら長押し（タップにしない）
-  var TAP_MESSAGE = '今日もおつかれさま！';
+  // タップしたときのセリフ（ランダムに1つ。直前と同じものは続けて出さない）
+  var TAP_MESSAGES = [
+    '今日もおつかれさま！',
+    '無理せんといこな',
+    'ぼちぼちいこ！',
+    'ええ感じやで！',
+    '今日もがんばってるな！',
+    'ちょっと休憩する？',
+    '水分とった？',
+    'いつでも呼んでな！',
+    '今日もよろしく！',
+    'おつかれ〜！',
+    '調子どう？',
+    'がんばりすぎ注意やで',
+    'えらいえらい！',
+    'よし、いこか！',
+    'なんか手伝おか？',
+    'おっとろしゃ〜',
+    'わやだな',
+    'また嫁に怒られた、、、',
+    'わしにも休みをくれ、、、'
+  ];
+  var lastTapMessage = -1;
 
   var SCALE_KEY = 'app-share/mascot-scale';
   var SCALE_MIN = 0.7;
@@ -495,12 +517,23 @@
     }, { passive: false });
   }
 
+  /** タップ時のセリフをランダムに選ぶ（直前と同じものは避ける） */
+  function tapMessage() {
+    var index = Math.floor(Math.random() * TAP_MESSAGES.length);
+    if (TAP_MESSAGES.length > 1 && index === lastTapMessage) {
+      // 同じだったら、ほかのどれかにずらす
+      index = (index + 1 + Math.floor(Math.random() * (TAP_MESSAGES.length - 1))) % TAP_MESSAGES.length;
+    }
+    lastTapMessage = index;
+    return TAP_MESSAGES[index];
+  }
+
   /** タップされたときのリアクション（あいさつして、少しして通常に戻る） */
   function react() {
     // コメント送信中（walk）は、送信中の表示を優先する
     if (current === 'walk') { return; }
     playMascot('wave', 1500);
-    say(TAP_MESSAGE, 1500);
+    say(tapMessage(), 1500);
   }
 
   /** 保存した位置を消して、右下の初期位置に戻す */
