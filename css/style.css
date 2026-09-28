@@ -3037,3 +3037,73 @@ svg {
 @media (prefers-reduced-motion: reduce) {
   .mascot__img { animation: none !important; }
 }
+
+/* ---------- マスコットの吹き出し ----------
+   マスコットの中に置くので、ドラッグすると一緒に動く。
+   タップは受け付けない（下にあるボタンや入力欄の操作を邪魔しない）。
+   位置の微調整（画面外に出ないようにする）は js/mascot.js が行う。 */
+.mascot__bubble {
+  --tail-x: 55px;
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: min(220px, calc(100vw - 24px));
+  padding: 7px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
+}
+
+.mascot__bubble.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: opacity .18s ease, transform .18s ease, visibility 0s;
+}
+
+/* しっぽ（マスコットの中央を指す） */
+.mascot__bubble::after {
+  content: "";
+  position: absolute;
+  left: var(--tail-x);
+  bottom: -5px;
+  width: 9px;
+  height: 9px;
+  margin-left: -5px;
+  background: var(--surface);
+  border-right: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  transform: rotate(45deg);
+}
+
+/* 画面の上端に近いときは、マスコットの下側に出す */
+.mascot__bubble.is-below {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
+.mascot__bubble.is-below::after {
+  top: -5px;
+  bottom: auto;
+  transform: rotate(225deg);
+}
+
+@media (max-width: 760px) {
+  .mascot__bubble {
+    max-width: min(180px, calc(100vw - 24px));
+    padding: 6px 10px;
+    font-size: 12.5px;
+  }
+}

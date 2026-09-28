@@ -866,6 +866,10 @@
     showPostError('');
     updateComposerState();
 
+    // 送信中はマスコットを「歩く」に（文章・写真つき共通）
+    mascot('setMascot', 'walk');
+    mascot('say', '送信中…');
+
     // 写真があるときは Edge Function 経由。ないときは従来どおりRPC。
     // どちらも投稿者名・staff_id・日時はサーバー側で決まる。
     var posting = hasImage
@@ -878,6 +882,10 @@
         });
 
     posting.then(function (result) {
+      // 投稿できたらマスコットを「喜ぶ」に（少しして通常に戻る）
+      mascot('playMascot', 'cheer', 1200);
+      mascot('say', '送ったで！', 1200);
+
       // 他の職員へ通知する（投稿の成否には影響させない）
       // 文章だけ: RPCの行の配列 / 写真つき: { ok, comment }
       var added = Array.isArray(result) ? result[0] : (result && result.comment);
@@ -891,6 +899,10 @@
       // 確認状況などの項目を揃えるため、取得し直す
       return fetchComments(true).then(scrollToBottom);
     }).catch(function (error) {
+      // 失敗したらマスコットは通常に戻す（エラー表示は従来どおり）
+      mascot('setMascot', 'idle');
+      mascot('say', 'もう一回試してみて', 2000);
+
       if (isAuthError(error)) {
         showPostError('ログインの有効期限が切れました。もう一度ログインしてください。');
         if (hooks.onSessionExpired) { hooks.onSessionExpired(); }
@@ -904,6 +916,17 @@
       isPosting = false;
       updateComposerState();
     });
+  }
+
+  /**
+   * マスコット（js/mascot.js）を呼ぶ。
+   * 読み込まれていない場合や失敗した場合も、投稿の処理には影響させない。
+   */
+  function mascot(method, state, duration) {
+    try {
+      var api = global.AppShareMascot;
+      if (api && typeof api[method] === 'function') { api[method](state, duration); }
+    } catch (e) { /* マスコットの失敗は無視する */ }
   }
 
   /* ---------------------------------------------------------

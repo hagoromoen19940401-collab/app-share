@@ -15,6 +15,7 @@
      AppShareMascot.playMascot('cheer', 1200)  一定時間だけ表示して idle に戻る
 
      AppShareMascot.resetPosition()            保存した位置を消して右下に戻す
+     AppShareMascot.say('送ったで！', 1500)      吹き出しを表示する（時間を省くと次に消すまで表示）
 
    マスコットはドラッグ（マウス・指）で好きな位置に動かせる。
    位置は端末内（localStorage）に、画面の右下からの距離で保存する。
@@ -35,10 +36,16 @@
   var POSITION_KEY = 'app-share/mascot-position';
   var EDGE = 4;                        // 画面の端（セーフエリアの内側）からの最小の余白
   var DRAG_START = 6;                  // この距離（px）以上動いたらドラッグとみなす
+  var TAP_MAX_MS = 500;                // これより長く押していたら長押し（タップにしない）
+  var TAP_MESSAGE = '今日もおつかれさま！';
 
   var saved = null;                    // 保存した位置 { right, bottom }（未保存なら null）
   var composerOffset = 0;              // チャット入力欄が出ているときの高さ＋余白
   var insetProbe = null;
+
+  var bubble = null;                   // 吹き出し
+  var bubbleText = null;
+  var bubbleTimer = null;
 
   function isState(state) {
     return STATES.indexOf(state) !== -1;
@@ -86,6 +93,17 @@
     });
 
     root.appendChild(img);
+
+    bubble = document.createElement('div');
+    bubble.className = 'mascot__bubble';
+    bubbleText = document.createElement('span');
+    bubble.appendChild(bubbleText);
+    root.appendChild(bubble);
+
+    // 位置の調整（0.2秒のアニメーション）が終わったら、吹き出しの位置も合わせ直す
+    root.addEventListener('transitionend', function (event) {
+      if (event.target === root) { positionBubble(); }
+    });
     document.body.appendChild(root);
 
     saved = readPosition();
@@ -103,6 +121,7 @@
     if (missing[state]) { root.hidden = true; return; }
 
     current = state;
+    if (state === 'idle') { hideBubble(); }
     img.src = srcOf(state);
 
     // 同じ動きを最初からやり直せるよう、一度クラスを外してから付け直す
@@ -229,6 +248,7 @@
     if (!saved) {
       root.style.right = '';
       root.style.bottom = composerOffset ? composerOffset + 'px' : '';
+      positionBubble();
       return;
     }
 
@@ -238,6 +258,7 @@
     }
     root.style.right = pos.right + 'px';
     root.style.bottom = pos.bottom + 'px';
+    positionBubble();
   }
 
   /* ---------------------------------------------------------
@@ -262,7 +283,7 @@
     }
 
     function begin(id, x, y) {
-      drag = { id: id, x: x, y: y, start: startPos(), moved: false, last: null };
+      drag = { id: id, x: x, y: y, start: startPos(), moved: false, last: null, time: Date.now() };
     }
 
     /** 動かしたら true（ドラッグ中）を返す */
@@ -282,15 +303,27 @@
       drag.last = pos;
       root.style.right = pos.right + 'px';
       root.style.bottom = pos.bottom + 'px';
+      positionBubble();
       return true;
     }
 
-    function end(id) {
+    /**
+     * 指・マウスを離したとき。
+     * ・6px以上動いていた → ドラッグの終了（位置を保存）
+     * ・ほとんど動かず、短く押しただけ → タップ（リアクション）
+     * ・キャンセル（スクロールなどでブラウザに取られた）・長押し → 何もしない
+     */
+    function end(id, canceled) {
       if (!drag || id !== drag.id) { return; }
       var moved = drag.moved;
       var last = drag.last;
+      var held = Date.now() - drag.time;
       drag = null;
-      if (!moved) { return; }
+
+      if (!moved) {
+        if (!canceled && held < TAP_MAX_MS) { react(); }
+        return;
+      }
 
       root.classList.remove('is-dragging');
       // 画面から読み直さず、最後に動かした位置を保存する（アニメーション途中の位置を拾わない）
@@ -319,8 +352,9 @@
     }, { passive: false });
 
     function touchEnd(event) {
+      var canceled = event.type === 'touchcancel';
       for (var i = 0; i < event.changedTouches.length; i += 1) {
-        end('touch-' + event.changedTouches[i].identifier);
+        end('touch-' + event.changedTouches[i].identifier, canceled);
       }
     }
     root.addEventListener('touchend', touchEnd);
@@ -342,13 +376,21 @@
     function pointerEnd(event) {
       if (event.pointerType === 'touch') { return; }
       try { root.releasePointerCapture(event.pointerId); } catch (e) { /* すでに外れていてもよい */ }
-      end('pointer-' + event.pointerId);
+      end('pointer-' + event.pointerId, event.type === 'pointercancel');
     }
     root.addEventListener('pointerup', pointerEnd);
     root.addEventListener('pointercancel', pointerEnd);
 
     // 画像そのもののドラッグ（ブラウザ標準）は止める
     root.addEventListener('dragstart', function (event) { event.preventDefault(); });
+  }
+
+  /** タップされたときのリアクション（あいさつして、少しして通常に戻る） */
+  function react() {
+    // コメント送信中（walk）は、送信中の表示を優先する
+    if (current === 'walk') { return; }
+    playMascot('wave', 1500);
+    say(TAP_MESSAGE, 1500);
   }
 
   /** 保存した位置を消して、右下の初期位置に戻す */
@@ -358,11 +400,72 @@
     layout();
   }
 
+  /* ---------------------------------------------------------
+     吹き出し
+     マスコットの上に表示する。画面の上端に近いときは下側に出し、
+     左右は画面（セーフエリアの内側）からはみ出さないようにずらす。
+     操作の邪魔をしないよう、タップは受け付けない（CSSで pointer-events: none）。
+     --------------------------------------------------------- */
+  function hideBubble() {
+    if (bubbleTimer) { global.clearTimeout(bubbleTimer); bubbleTimer = null; }
+    if (bubble) { bubble.classList.remove('is-visible'); }
+  }
+
+  /** 吹き出しを表示する。duration（ミリ秒）を省くと、次に消すまで表示したまま */
+  function say(text, duration) {
+    if (!root) { build(); }
+    hideBubble();
+    if (!text) { return; }
+
+    bubbleText.textContent = String(text);
+    bubble.classList.add('is-visible');
+    positionBubble();
+
+    if (typeof duration === 'number' && duration > 0) {
+      bubbleTimer = global.setTimeout(hideBubble, duration);
+    }
+  }
+
+  function positionBubble() {
+    if (!bubble || !bubble.classList.contains('is-visible') || root.hidden) { return; }
+
+    // いったん初期位置（マスコットの上・右寄せ）に戻してから測る
+    bubble.classList.remove('is-below');
+    bubble.style.right = '';
+
+    var safe = insets();
+    var vw = global.innerWidth;
+    var box = bubble.getBoundingClientRect();
+
+    // 上にはみ出すときは、マスコットの下側に出す
+    if (box.top < safe.top + EDGE) {
+      bubble.classList.add('is-below');
+      box = bubble.getBoundingClientRect();
+    }
+
+    // 左右にはみ出す分だけずらす
+    var shift = 0;
+    if (box.left < safe.left + EDGE) {
+      shift = (safe.left + EDGE) - box.left;          // 右へ
+    } else if (box.right > vw - safe.right - EDGE) {
+      shift = (vw - safe.right - EDGE) - box.right;    // 左へ
+    }
+    if (shift) { bubble.style.right = (-shift) + 'px'; }
+
+    // しっぽは、マスコットの中央を指すようにする
+    var mascotBox = root.getBoundingClientRect();
+    var left = box.left + shift;
+    var tail = (mascotBox.left + mascotBox.width / 2) - left;
+    tail = Math.min(Math.max(tail, 14), box.width - 14);
+    bubble.style.setProperty('--tail-x', tail + 'px');
+  }
+
   function start() {
     preload();
     build();
     // 起動時はあいさつしてから通常時へ
     playMascot('wave', 1800);
+    say('おつかれさま！', 1800);
   }
 
   if (document.readyState === 'loading') {
@@ -374,6 +477,7 @@
   global.AppShareMascot = {
     setMascot: setMascot,
     playMascot: playMascot,
-    resetPosition: resetPosition
+    resetPosition: resetPosition,
+    say: say
   };
 })(window);
