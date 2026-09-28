@@ -8,6 +8,7 @@
      cheer  保存・投稿などの成功時
 
    画像は assets/mascot/{state}.png に置く。
+   通常時（idle）は idle / sit / bike / victory / tired.png からランダムに1枚出す。
    画像が無い場合は表示しない（既存の画面には影響しない）。
 
    ほかの画面から呼ぶとき
@@ -31,14 +32,18 @@
   'use strict';
 
   var STATES = ['idle', 'wave', 'walk', 'cheer'];
+  // 通常時（idle）の画像の候補。ここからランダムに1枚出す（直前と同じものは続けて出さない）
+  var IDLE_IMAGES = ['idle', 'sit', 'bike', 'victory', 'tired'];
   var IMAGE_DIR = 'assets/mascot/';
   var VERSION = '20260927-7';          // 画像を差し替えたときもここを上げる
 
   var root = null;
   var img = null;
   var current = null;
+  var currentImage = null;             // いま表示している画像の名前（idle のときは候補のどれか）
+  var lastIdleImage = null;            // 直前に出した通常時の画像
   var timer = null;
-  var missing = {};                    // 読み込めなかった画像
+  var missing = {};                    // 読み込めなかった画像（画像の名前ごと）
 
   var POSITION_KEY = 'app-share/mascot-position';
   var VISIBLE_KEY = 'app-share/mascot-visible';     // '0' のときだけ表示しない（初期値は表示する）
@@ -91,13 +96,28 @@
     return IMAGE_DIR + state + '.png?v=' + VERSION;
   }
 
-  /** 4種類の画像を先に読み込んでおき、切り替え時のちらつきを防ぐ */
+  /** 画像を先に読み込んでおき、切り替え時のちらつきを防ぐ */
   function preload() {
-    STATES.forEach(function (state) {
+    STATES.concat(IDLE_IMAGES).forEach(function (name) {
       var probe = new global.Image();
-      probe.onerror = function () { missing[state] = true; };
-      probe.src = srcOf(state);
+      probe.onerror = function () { missing[name] = true; };
+      probe.src = srcOf(name);
     });
+  }
+
+  /** 通常時の画像をランダムに選ぶ（読み込めない画像と、できるだけ直前の画像は避ける） */
+  function pickIdleImage() {
+    var list = IDLE_IMAGES.filter(function (name) { return !missing[name]; });
+    if (list.length > 1) {
+      list = list.filter(function (name) { return name !== lastIdleImage; });
+    }
+    if (!list.length) { return null; }
+    lastIdleImage = list[Math.floor(Math.random() * list.length)];
+    return lastIdleImage;
+  }
+
+  function hasIdleImage() {
+    return IDLE_IMAGES.some(function (name) { return !missing[name]; });
   }
 
   function build() {
@@ -122,9 +142,9 @@
       layout();                        // 大きさが決まってから、画面内に収まる位置に直す
     });
     img.addEventListener('error', function () {
-      missing[current] = true;
-      // その状態の画像が無ければ通常時の画像にする。通常時も無ければ隠す
-      if (current !== 'idle' && !missing.idle) {
+      missing[currentImage] = true;
+      // その画像が無ければ通常時の（ほかの）画像にする。通常時の候補が全部無ければ隠す
+      if (hasIdleImage()) {
         apply('idle');
       } else {
         root.hidden = true;
@@ -157,12 +177,16 @@
   /** 画像とアニメーションを切り替える */
   function apply(state) {
     if (!root) { build(); }
-    if (missing[state]) { state = 'idle'; }
-    if (missing[state]) { root.hidden = true; return; }
+    if (state !== 'idle' && missing[state]) { state = 'idle'; }
+
+    // 通常時は候補からランダムに1枚選ぶ
+    var name = state === 'idle' ? pickIdleImage() : state;
+    if (!name) { root.hidden = true; return; }
 
     current = state;
+    currentImage = name;
     if (state === 'idle') { hideBubble(); }
-    img.src = srcOf(state);
+    img.src = srcOf(name);
 
     // 同じ動きを最初からやり直せるよう、一度クラスを外してから付け直す
     STATES.forEach(function (name) { root.classList.remove('mascot--' + name); });
