@@ -3783,12 +3783,45 @@ body {
 /* iPhone：メニュー・ログアウト・設定と1行に収まる大きさ
    幅が足りないときはロゴが縮む（縦横比は object-fit で保つ） */
 @media (max-width: 760px) {
-  .header__brand { flex: 0 1 auto; min-width: 0; }
-  .header__logo { height: 30px; object-position: left center; }
+  .header__logo { height: 30px; }
   .header__logout { flex: none; white-space: nowrap; }
 }
 
 /* とても狭い画面（初代 iPhone SE など）：少し小さく */
 @media (max-width: 360px) {
   .header__logo { height: 24px; }
+}
+
+/* =========================================================
+   ヘッダーのロゴを中央に置く
+   ・左（メニュー）/ 中央（ロゴ）/ 右（ログイン中・ログイン・設定）の3列
+   ・左右の列は同じ幅（1fr）なので、ロゴはヘッダー全体の中央に来る
+   ・左右の列はボタンの幅より縮まない。狭い画面ではロゴの列だけが縮み、重ならない
+     （左右の幅が違うほど狭いときは、重ならないことを優先してロゴが少しずれる）
+   ========================================================= */
+.header {
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+  align-items: center;
+}
+
+.header__nav-toggle { grid-column: 1; justify-self: start; }
+
+.header__brand {
+  grid-column: 2;
+  justify-self: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.header__actions {
+  grid-column: 3;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .header__actions { gap: 6px; }
 }

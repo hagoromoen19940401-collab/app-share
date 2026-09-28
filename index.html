@@ -24,7 +24,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
-  <link rel="stylesheet" href="css/style.css?v=20260928-12">
+  <link rel="stylesheet" href="css/style.css?v=20260928-13">
 </head>
 <body>
 
@@ -39,24 +39,27 @@
       <img class="header__logo" src="assets/applink-logo.png" alt="あぷりんく" width="631" height="144" decoding="async">
     </div>
 
-    <div class="header__session" id="headerSession" hidden>
-      <span class="header__session-text"><span class="header__session-label">ログイン中：</span><b id="sessionName"></b></span>
-      <button class="button button--quiet header__logout" id="logoutButton" type="button">ログアウト</button>
+    <!-- 右側：ログイン中の表示・ログイン・設定 -->
+    <div class="header__actions">
+      <div class="header__session" id="headerSession" hidden>
+        <span class="header__session-text"><span class="header__session-label">ログイン中：</span><b id="sessionName"></b></span>
+        <button class="button button--quiet header__logout" id="logoutButton" type="button">ログアウト</button>
+      </div>
+
+      <button class="button header__login" id="loginButton" type="button">
+        <span class="button__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M10 4.5H5.5v15H10"/><path d="M14 8l4 4-4 4"/><path d="M18 12H9"/></svg>
+        </span>
+        <span class="header__login-label">ログイン</span>
+      </button>
+
+      <button class="button button--ghost header__settings" id="settingsButton" type="button">
+        <span class="button__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z"/><path d="M19.5 12a7.5 7.5 0 00-.1-1.2l2-1.5-2-3.4-2.3 1a7.5 7.5 0 00-2-1.2L14.7 3H9.3l-.4 2.7a7.5 7.5 0 00-2 1.2l-2.3-1-2 3.4 2 1.5a7.5 7.5 0 000 2.4l-2 1.5 2 3.4 2.3-1a7.5 7.5 0 002 1.2l.4 2.7h5.4l.4-2.7a7.5 7.5 0 002-1.2l2.3 1 2-3.4-2-1.5c.07-.4.1-.8.1-1.2z"/></svg>
+        </span>
+        <span class="header__settings-label">設定</span>
+      </button>
     </div>
-
-    <button class="button header__login" id="loginButton" type="button">
-      <span class="button__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M10 4.5H5.5v15H10"/><path d="M14 8l4 4-4 4"/><path d="M18 12H9"/></svg>
-      </span>
-      <span class="header__login-label">ログイン</span>
-    </button>
-
-    <button class="button button--ghost header__settings" id="settingsButton" type="button">
-      <span class="button__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z"/><path d="M19.5 12a7.5 7.5 0 00-.1-1.2l2-1.5-2-3.4-2.3 1a7.5 7.5 0 00-2-1.2L14.7 3H9.3l-.4 2.7a7.5 7.5 0 00-2 1.2l-2.3-1-2 3.4 2 1.5a7.5 7.5 0 000 2.4l-2 1.5 2 3.4 2.3-1a7.5 7.5 0 002 1.2l.4 2.7h5.4l.4-2.7a7.5 7.5 0 002-1.2l2.3 1 2-3.4-2-1.5c.07-.4.1-.8.1-1.2z"/></svg>
-      </span>
-      <span class="header__settings-label">設定</span>
-    </button>
   </header>
 
   <!-- ===== 本体 ===== -->
@@ -158,15 +161,15 @@
     integrity="sha384-K1nraABOP/zFehpLIUksXebbs7jMpB8gYMlb+uhVKZcWT/9Vkq1+qhv6ndC+1Yuz"
     crossorigin="anonymous"></script>
 
-  <script src="data/apps.js?v=20260928-12"></script>
-  <script src="js/chat.js?v=20260928-12"></script>
-  <script src="js/apps.js?v=20260928-12"></script>
-  <script src="js/supabase.js?v=20260928-12"></script>
-  <script src="js/push.js?v=20260928-12"></script>
-  <script src="js/auth.js?v=20260928-12"></script>
-  <script src="js/settings.js?v=20260928-12"></script>
-  <script src="js/app.js?v=20260928-12"></script>
-  <script src="js/mascot.js?v=20260928-12"></script>
-  <script src="js/update.js?v=20260928-12"></script>
+  <script src="data/apps.js?v=20260928-13"></script>
+  <script src="js/chat.js?v=20260928-13"></script>
+  <script src="js/apps.js?v=20260928-13"></script>
+  <script src="js/supabase.js?v=20260928-13"></script>
+  <script src="js/push.js?v=20260928-13"></script>
+  <script src="js/auth.js?v=20260928-13"></script>
+  <script src="js/settings.js?v=20260928-13"></script>
+  <script src="js/app.js?v=20260928-13"></script>
+  <script src="js/mascot.js?v=20260928-13"></script>
+  <script src="js/update.js?v=20260928-13"></script>
 </body>
 </html>
