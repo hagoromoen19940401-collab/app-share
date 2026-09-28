@@ -570,12 +570,21 @@
     bubble.style.setProperty('--tail-x', tail + 'px');
   }
 
+  /** 起動時のあいさつ（端末の現在時刻で変える） */
+  function greeting() {
+    var hour = new Date().getHours();
+    if (hour >= 5 && hour < 11) { return 'おはよう！'; }
+    if (hour >= 11 && hour < 17) { return 'こんにちは！'; }
+    if (hour >= 17) { return 'こんばんは！'; }
+    return '夜更かしやな〜';                          // 0:00〜4:59
+  }
+
   function start() {
     preload();
     build();
     // 起動時はあいさつしてから通常時へ
     playMascot('wave', 1800);
-    say('おつかれさま！', 1800);
+    say(greeting(), 1800);
   }
 
   if (document.readyState === 'loading') {
