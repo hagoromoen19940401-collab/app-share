@@ -3163,3 +3163,41 @@ svg {
   .sidebar__nav { padding-top: 14px; }
   .app-item--general { min-height: 58px; }
 }
+
+/* =========================================================
+   iPhoneのヘッダー：「あぷりんく」とログイン中の表示が重ならないように
+   ・「あぷりんく」は縮めない（文字が欠けないように）
+   ・ログイン中の表示は名前だけの小さいピルにし、足りない分は「…」で省略
+   ・PC / iPad（761px以上）は変更なし
+   ========================================================= */
+@media (max-width: 760px) {
+  .header { gap: 6px; }
+
+  .header__brand { flex: none; gap: 8px; }
+  .header__mark { width: 28px; height: 28px; padding: 5px; }
+  .header__title { font-size: 15px; letter-spacing: 0.02em; }
+
+  .header__session {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-end;
+    margin-left: 8px;
+    gap: 2px;
+  }
+
+  .header__session-label { display: none; }   /* 「ログイン中：」は省き、名前だけ表示 */
+
+  .header__session-text {
+    min-width: 0;
+    max-width: 28vw;
+    padding: 3px 9px;
+    font-size: 12px;
+  }
+
+  .header__logout { flex: none; padding: 6px 6px; font-size: 11.5px; }
+}
+
+/* とても狭い画面（初代 iPhone SE など）では、名前のピルを出さずに重なりを防ぐ */
+@media (max-width: 360px) {
+  .header__session-text { display: none; }
+}
