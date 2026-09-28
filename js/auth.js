@@ -113,7 +113,7 @@
     return '' +
       '<div class="field">' +
         '<label class="field__label" for="loginStaff">職員</label>' +
-        '<select class="field__input field__select" id="loginStaff">' + options + '</select>' +
+        '<select class="field__input field__select" id="loginStaff" autocomplete="off">' + options + '</select>' +
       '</div>' +
       '<div class="field">' +
         '<label class="field__label" for="loginPassword">パスワード</label>' +

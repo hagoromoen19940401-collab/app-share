@@ -84,18 +84,18 @@
           '<div class="field">' +
             '<label class="field__label" for="currentPassword">現在のパスワード</label>' +
             '<input class="field__input field__input--short" id="currentPassword" type="password" ' +
-                   'inputmode="numeric" maxlength="4" autocomplete="current-password" placeholder="••••">' +
+                   'inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">' +
           '</div>' +
           '<div class="field">' +
             '<label class="field__label" for="newPassword">新しいパスワード</label>' +
             '<input class="field__input field__input--short" id="newPassword" type="password" ' +
-                   'inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••">' +
+                   'inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">' +
             '<p class="field__hint">4桁の数字で入力してください。</p>' +
           '</div>' +
           '<div class="field">' +
             '<label class="field__label" for="newPasswordConfirm">新しいパスワード（確認）</label>' +
             '<input class="field__input field__input--short" id="newPasswordConfirm" type="password" ' +
-                   'inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••">' +
+                   'inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">' +
           '</div>' +
           '<div class="staff-form__actions">' +
             '<button class="button" type="button" id="passwordSubmit">変更する</button>' +
@@ -158,7 +158,7 @@
           '<div class="field">' +
             '<label class="field__label" for="staffPassword">パスワード</label>' +
             '<input class="field__input field__input--short" id="staffPassword" type="password" ' +
-                   'inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••">' +
+                   'inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">' +
             '<p class="field__hint">4桁の数字で入力してください。</p>' +
           '</div>' +
           '<div class="staff-form__actions">' +
@@ -798,13 +798,13 @@
       ? '<div class="field">' +
           '<label class="field__label" for="gateNew">新しい設定パスワード</label>' +
           '<input class="field__input field__input--short" id="gateNew" type="password" ' +
-                 'inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••">' +
+                 'inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">' +
           '<p class="field__hint">4桁の数字で入力してください。職員全員で共有します。</p>' +
         '</div>' +
         '<div class="field">' +
           '<label class="field__label" for="gateConfirm">確認</label>' +
           '<input class="field__input field__input--short" id="gateConfirm" type="password" ' +
-                 'inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••">' +
+                 'inputmode="numeric" maxlength="4" autocomplete="off" placeholder="••••">' +
         '</div>'
       : '<div class="field">' +
           '<label class="field__label" for="gatePassword">設定パスワード</label>' +
