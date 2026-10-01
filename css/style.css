@@ -3122,6 +3122,11 @@ svg {
   color: var(--text-sub);
 }
 
+.sidebar__apps-toggle {
+  margin: 8px 0 0;
+}
+.sidebar__apps[hidden] { display: none; }
+
 @media (max-width: 760px) {
   .sidebar__nav { padding-top: 14px; }
   .app-item--general { min-height: 58px; }
@@ -3381,28 +3386,8 @@ body {
   }
 }
 
-/* ---------- 「公開アプリ」見出し：別グループだと分かるように ---------- */
-.sidebar__section {
-  margin: 20px 2px 12px;
-  padding: 16px 4px 0;
-  border-top: 1px dashed rgba(40, 36, 30, 0.16);
-}
-
-.sidebar__section-title {
-  font-size: 12.5px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: var(--text-sub);
-}
-
-.sidebar__section-count {
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-  font-weight: 700;
-}
-
 /* ---------- 公開アプリ：アプリカード ---------- */
-.sidebar__nav > .app-item:not(.app-item--general) {
+.sidebar__apps > .app-item:not(.app-item--general) {
   position: relative;
   min-height: 64px;
   gap: 12px;
@@ -3415,10 +3400,10 @@ body {
   transition: background .15s, box-shadow .15s, transform .12s ease-out;
 }
 
-.sidebar__nav > .app-item::before { display: none; }
+.sidebar__apps > .app-item::before { display: none; }
 
 /* 角丸アイコンタイル（アプリごとに淡い色を変える） */
-.sidebar__nav > .app-item:nth-of-type(n) .app-item__tile {
+.sidebar__apps > .app-item:nth-of-type(n) .app-item__tile {
   width: 42px;
   height: 42px;
   padding: 10px;
@@ -3428,23 +3413,23 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6), 0 1px 3px rgba(40, 36, 30, 0.08);
 }
 
-.sidebar__nav > .app-item:nth-of-type(4n+2) .app-item__tile { background: linear-gradient(145deg, #f6ecdc, #eddcc2); color: #8a6232; }
-.sidebar__nav > .app-item:nth-of-type(4n+3) .app-item__tile { background: linear-gradient(145deg, #e3edf6, #d0e0ee); color: #3c6488; }
-.sidebar__nav > .app-item:nth-of-type(4n+4) .app-item__tile { background: linear-gradient(145deg, #f5e4e0, #ebd0c9); color: #9a5446; }
+.sidebar__apps > .app-item:nth-of-type(4n+2) .app-item__tile { background: linear-gradient(145deg, #f6ecdc, #eddcc2); color: #8a6232; }
+.sidebar__apps > .app-item:nth-of-type(4n+3) .app-item__tile { background: linear-gradient(145deg, #e3edf6, #d0e0ee); color: #3c6488; }
+.sidebar__apps > .app-item:nth-of-type(4n+4) .app-item__tile { background: linear-gradient(145deg, #f5e4e0, #ebd0c9); color: #9a5446; }
 
-.sidebar__nav > .app-item:not(.app-item--general) .app-item__name {
+.sidebar__apps > .app-item:not(.app-item--general) .app-item__name {
   font-size: 14.5px;
   font-weight: 700;
   color: var(--text);
 }
 
-.sidebar__nav > .app-item:not(.app-item--general) .app-item__meta {
+.sidebar__apps > .app-item:not(.app-item--general) .app-item__meta {
   font-size: 11.5px;
   color: var(--text-weak);
 }
 
 /* 選択中：薄緑の背景＋緑の枠＋影、アイコンは緑に */
-.sidebar__nav > .app-item.is-active:not(.app-item--general) {
+.sidebar__apps > .app-item.is-active:not(.app-item--general) {
   background: #eef7f3;
   box-shadow:
     0 0 0 2px var(--accent),
@@ -3452,27 +3437,27 @@ body {
   transform: translateY(-1px);
 }
 
-.sidebar__nav > .app-item.is-active:nth-of-type(n) .app-item__tile {
+.sidebar__apps > .app-item.is-active:nth-of-type(n) .app-item__tile {
   background: linear-gradient(145deg, #3b877d, #2f6f68);
   color: #fff;
   box-shadow: 0 3px 8px rgba(47, 111, 104, 0.32);
 }
 
-.sidebar__nav > .app-item.is-active .app-item__name { color: var(--accent-dark); }
+.sidebar__apps > .app-item.is-active .app-item__name { color: var(--accent-dark); }
 
-.sidebar__nav > .app-item .app-item__count {
+.sidebar__apps > .app-item .app-item__count {
   background: var(--accent);
   color: #fff;
   font-weight: 700;
 }
 
 @media (hover: hover) {
-  .sidebar__nav > .app-item:not(.app-item--general):hover {
+  .sidebar__apps > .app-item:not(.app-item--general):hover {
     background: #fff;
     box-shadow: 0 0 0 1px rgba(40, 36, 30, 0.08), 0 8px 18px rgba(40, 36, 30, 0.09);
     transform: translateY(-2px);
   }
-  .sidebar__nav > .app-item.is-active:not(.app-item--general):hover {
+  .sidebar__apps > .app-item.is-active:not(.app-item--general):hover {
     background: #eef7f3;
     box-shadow: 0 0 0 2px var(--accent), 0 12px 24px rgba(47, 111, 104, 0.22);
   }
@@ -3498,10 +3483,12 @@ body {
   .sidebar-empty { grid-column: 1 / -1; }
 
   .sidebar__general { margin-bottom: 0; }
-  .sidebar__section { margin: 10px 2px 2px; }
+  .sidebar__apps-toggle { grid-column: 1 / -1; }
+  .sidebar__apps { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
+  .sidebar__apps[hidden] { display: none; }
 
   /* カードは縦並び：大きなアイコン → 名前 → 説明 */
-  .sidebar__nav > .app-item:not(.app-item--general) {
+  .sidebar__apps > .app-item:not(.app-item--general) {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
@@ -3511,16 +3498,16 @@ body {
     border-radius: 18px;
   }
 
-  .sidebar__nav > .app-item:nth-of-type(n) .app-item__tile {
+  .sidebar__apps > .app-item:nth-of-type(n) .app-item__tile {
     width: 48px;
     height: 48px;
     padding: 11px;
     border-radius: 15px;
   }
 
-  .sidebar__nav > .app-item:not(.app-item--general) .app-item__body { width: 100%; }
+  .sidebar__apps > .app-item:not(.app-item--general) .app-item__body { width: 100%; }
 
-  .sidebar__nav > .app-item:not(.app-item--general) .app-item__name {
+  .sidebar__apps > .app-item:not(.app-item--general) .app-item__name {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
@@ -3530,7 +3517,7 @@ body {
     line-height: 1.4;
   }
 
-  .sidebar__nav > .app-item:not(.app-item--general) .app-item__meta {
+  .sidebar__apps > .app-item:not(.app-item--general) .app-item__meta {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
@@ -3539,7 +3526,7 @@ body {
     line-height: 1.45;
   }
 
-  .sidebar__nav > .app-item:not(.app-item--general) .app-item__count {
+  .sidebar__apps > .app-item:not(.app-item--general) .app-item__count {
     position: absolute;
     top: 12px;
     right: 12px;
@@ -3715,15 +3702,13 @@ body {
   .app-item--general { min-height: 76px; padding: 13px 14px; }
 
   /* 「公開アプリ」は白い区切りの中にまとめて、別グループだと分かるように */
-  .sidebar__section {
-    margin: 18px 0 10px;
-    padding: 14px 6px 0;
-  }
+  .sidebar__apps-toggle { margin-top: 8px; }
+  .sidebar__apps[hidden] { display: none; }
 
-  .sidebar__nav > .app-item:not(.app-item--general) { min-height: 64px; padding: 10px 12px; }
+  .sidebar__apps > .app-item:not(.app-item--general) { min-height: 64px; padding: 10px 12px; }
 
-  .sidebar__nav > .app-item:not(.app-item--general) .app-item__name { font-size: 15px; }
-  .sidebar__nav > .app-item:not(.app-item--general) .app-item__meta { font-size: 12px; }
+  .sidebar__apps > .app-item:not(.app-item--general) .app-item__name { font-size: 15px; }
+  .sidebar__apps > .app-item:not(.app-item--general) .app-item__meta { font-size: 12px; }
 
   /* タブ：画面幅いっぱいのピル */
   .workbar__tabs { width: 100%; }

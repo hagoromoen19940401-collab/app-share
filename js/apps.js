@@ -149,13 +149,14 @@
     var list = allApps();
     var general = '' +
       '<div class="sidebar__general">' + appItemHtml(GENERAL) + '</div>' +
-      '<div class="sidebar__section">' +
-        '<span class="sidebar__section-title">公開アプリ</span>' +
-        (list.length ? '<span class="sidebar__section-count">' + list.length + '</span>' : '') +
-      '</div>';
+      '<button class="app-item app-item--general sidebar__apps-toggle" type="button" aria-expanded="true" aria-controls="sidebarApps">' +
+        '<span class="app-item__tile" aria-hidden="true"><svg viewBox="0 0 24 24">' + ICONS.folder + '</svg></span>' +
+        '<span class="app-item__body"><span class="app-item__name">アプリ</span><span class="app-item__meta">公開アプリ一覧</span></span>' +
+        (list.length ? '<span class="app-item__count">' + list.length + '</span>' : '') +
+      '</button>';
 
     if (!list.length) {
-      els.listEl.innerHTML = general +
+      els.listEl.innerHTML = general + '<div class="sidebar__apps" id="sidebarApps">' +
         '<div class="sidebar-empty">' +
           icon('folder', 'sidebar-empty__icon') +
           '<p class="sidebar-empty__title">まだアプリが登録されていません</p>' +
@@ -163,12 +164,12 @@
           '<button class="button button--ghost sidebar-empty__button" type="button" data-open-settings>' +
             '設定から登録' +
           '</button>' +
-        '</div>';
+        '</div></div>';
       if (els.countEl) { els.countEl.textContent = ''; }
       return;
     }
 
-    els.listEl.innerHTML = general + list.map(appItemHtml).join('');
+    els.listEl.innerHTML = general + '<div class="sidebar__apps" id="sidebarApps">' + list.map(appItemHtml).join('') + '</div>';
     if (els.countEl) { els.countEl.textContent = list.length; }
   }
 
@@ -340,6 +341,14 @@
       if (options.initialTab) { currentTab = options.initialTab; }
 
       els.listEl.addEventListener('click', function (event) {
+        var toggle = event.target.closest('.sidebar__apps-toggle');
+        if (toggle) {
+          var apps = els.listEl.querySelector('#sidebarApps');
+          var expanded = toggle.getAttribute('aria-expanded') === 'true';
+          toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+          apps.hidden = expanded;
+          return;
+        }
         if (event.target.closest('[data-login]')) {
           if (onRequireLogin) { onRequireLogin(); }
           return;
