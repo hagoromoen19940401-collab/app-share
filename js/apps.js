@@ -91,6 +91,7 @@
   var currentTab = 'overview';
   var remoteApps = [];   // Supabaseに登録されたアプリ
   var loggedIn = false;
+  var appsExpanded = true;
 
   /** Supabaseの1行を、画面で使う形に合わせる */
   function toApp(row) {
@@ -113,7 +114,7 @@
      左側：全体チャット（独立したカード）＋ 公開アプリの一覧
      --------------------------------------------------------- */
   function appItemHtml(app) {
-    var count = global.AppShareChat.countFor(app.id);
+    var count = global.AppShareChat.unreadFor(app.id);
     var active = app.id === currentAppId;
     // 全体チャットは名前だけを表示する
     var meta = app.general ? '' : (app.description
@@ -130,7 +131,7 @@
           '<span class="app-item__name">' + Util.escapeHtml(app.name) + '</span>' +
           (meta ? '<span class="app-item__meta">' + meta + '</span>' : '') +
         '</span>' +
-        (count ? '<span class="app-item__count">' + count + '</span>' : '') +
+        (count ? '<span class="app-item__count app-item__count--unread">' + (count > 99 ? '99+' : count) + '</span>' : '') +
       '</button>';
   }
 
@@ -147,16 +148,17 @@
     }
 
     var list = allApps();
+    var appsUnread = global.AppShareChat.totalUnreadFor(list.map(function (app) { return app.id; }));
     var general = '' +
       '<div class="sidebar__general">' + appItemHtml(GENERAL) + '</div>' +
-      '<button class="app-item app-item--general sidebar__apps-toggle" type="button" aria-expanded="true" aria-controls="sidebarApps">' +
+      '<button class="app-item app-item--general sidebar__apps-toggle" type="button" aria-expanded="' + appsExpanded + '" aria-controls="sidebarApps">' +
         '<span class="app-item__tile" aria-hidden="true"><svg viewBox="0 0 24 24">' + ICONS.folder + '</svg></span>' +
         '<span class="app-item__body"><span class="app-item__name">アプリ</span><span class="app-item__meta">公開アプリ一覧</span></span>' +
-        (list.length ? '<span class="app-item__count">' + list.length + '</span>' : '') +
+        (appsUnread ? '<span class="app-item__count app-item__count--unread">' + (appsUnread > 99 ? '99+' : appsUnread) + '</span>' : '') +
       '</button>';
 
     if (!list.length) {
-      els.listEl.innerHTML = general + '<div class="sidebar__apps" id="sidebarApps">' +
+      els.listEl.innerHTML = general + '<div class="sidebar__apps" id="sidebarApps"' + (appsExpanded ? '' : ' hidden') + '>' +
         '<div class="sidebar-empty">' +
           icon('folder', 'sidebar-empty__icon') +
           '<p class="sidebar-empty__title">まだアプリが登録されていません</p>' +
@@ -169,7 +171,7 @@
       return;
     }
 
-    els.listEl.innerHTML = general + '<div class="sidebar__apps" id="sidebarApps">' + list.map(appItemHtml).join('') + '</div>';
+    els.listEl.innerHTML = general + '<div class="sidebar__apps" id="sidebarApps"' + (appsExpanded ? '' : ' hidden') + '>' + list.map(appItemHtml).join('') + '</div>';
     if (els.countEl) { els.countEl.textContent = list.length; }
   }
 
@@ -345,8 +347,9 @@
         if (toggle) {
           var apps = els.listEl.querySelector('#sidebarApps');
           var expanded = toggle.getAttribute('aria-expanded') === 'true';
-          toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-          apps.hidden = expanded;
+          appsExpanded = !expanded;
+          toggle.setAttribute('aria-expanded', String(appsExpanded));
+          apps.hidden = !appsExpanded;
           return;
         }
         if (event.target.closest('[data-login]')) {

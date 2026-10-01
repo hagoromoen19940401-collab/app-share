@@ -9,7 +9,7 @@
    投稿者名・staff_id・日時・状態はSupabase側で決まる。
    ブラウザからは指定しない（なりすまし防止のため）。
 
-   ログイン中かつチャットタブを開いている間だけ、約5秒ごとに再取得する。
+   ログイン中は約5秒ごとに未読件数を取得し、チャット表示中はコメントも再取得する。
    ========================================================= */
 
 (function (global) {
@@ -127,7 +127,11 @@
 
   var cache      = {};        // appId -> コメントの配列
   var counts     = {};        // appId -> 件数
+  var unreadCounts = {};      // appId -> 未読件数
   var loadedOnce = {};        // appId -> 一度でも取得できたか
+  var unreadInFlight = false;
+  var unreadReady = false;    // 職員ごとの初回基準時刻を取得済みか
+  var markingRead = {};
   var listError  = '';
   var postError  = '';
   var signature  = '';        // 表示中の内容。変わらなければ描画し直さない
@@ -829,6 +833,9 @@
       listError = '';
       renderList(!!force);
       if (hooks.onCountsChanged) { hooks.onCountsChanged(); }
+      if (isActive && appId === currentAppId && cache[appId].length) {
+        markRead(appId, cache[appId][cache[appId].length - 1].created_at);
+      }
     }).catch(function (error) {
       if (isAuthError(error)) {
         if (hooks.onSessionExpired) { hooks.onSessionExpired(); }
@@ -839,6 +846,51 @@
       renderList(true);
     }).then(function () {
       inFlight = false;
+    });
+  }
+
+  /** 全チャットの未読件数をまとめて取得する。 */
+  function fetchUnreadCounts() {
+    if (!isLoggedIn() || unreadInFlight) { return Promise.resolve(); }
+    unreadInFlight = true;
+
+    return global.AppShareSupabase.rpc('appshare_unread_counts', {
+      p_token: token()
+    }).then(function (rows) {
+      var next = {};
+      (rows || []).forEach(function (row) {
+        next[row.app_id] = Number(row.unread_count) || 0;
+      });
+      unreadCounts = next;
+      unreadReady = true;
+      if (hooks.onCountsChanged) { hooks.onCountsChanged(); }
+      if (isActive && currentAppId && cache[currentAppId] && cache[currentAppId].length) {
+        markRead(currentAppId, cache[currentAppId][cache[currentAppId].length - 1].created_at);
+      }
+    }).catch(function (error) {
+      if (isAuthError(error) && hooks.onSessionExpired) { hooks.onSessionExpired(); }
+    }).then(function () {
+      unreadInFlight = false;
+    });
+  }
+
+  /** 表示中のチャットをサーバー側で既読にする。 */
+  function markRead(appId, readAt) {
+    if (!appId || !readAt || !unreadReady || !isLoggedIn() || markingRead[appId]) { return Promise.resolve(); }
+    markingRead[appId] = true;
+
+    return global.AppShareSupabase.rpc('appshare_unread_mark_read', {
+      p_token: token(),
+      p_app_id: appId,
+      p_read_at: readAt
+    }).then(function (rows) {
+      var result = rows && rows[0];
+      unreadCounts[appId] = result ? (Number(result.unread_count) || 0) : 0;
+      if (hooks.onCountsChanged) { hooks.onCountsChanged(); }
+    }).catch(function (error) {
+      if (isAuthError(error) && hooks.onSessionExpired) { hooks.onSessionExpired(); }
+    }).then(function () {
+      delete markingRead[appId];
     });
   }
 
@@ -1219,7 +1271,7 @@
      5秒ごとの再取得
      --------------------------------------------------------- */
   function canPoll() {
-    return isActive && isLoggedIn() && !!currentAppId &&
+    return isLoggedIn() && !!currentAppId &&
            !(global.document && global.document.hidden);
   }
 
@@ -1235,13 +1287,17 @@
     if (!canPoll()) { return; }
     timer = global.setInterval(function () {
       if (!canPoll()) { stopPolling(); return; }
-      fetchComments();
+      if (isActive) { fetchComments(); }
+      fetchUnreadCounts();
     }, POLL_INTERVAL);
   }
 
   function syncPolling(fetchNow) {
     if (canPoll()) {
-      if (fetchNow) { fetchComments(); }
+      if (fetchNow) {
+        if (isActive) { fetchComments(); }
+        fetchUnreadCounts();
+      }
       startPolling();
     } else {
       stopPolling();
@@ -1260,6 +1316,16 @@
     /** サイドバーやタブに出す件数。取得前は null */
     countFor: function (appId) {
       return Object.prototype.hasOwnProperty.call(counts, appId) ? counts[appId] : null;
+    },
+
+    unreadFor: function (appId) {
+      return unreadCounts[appId] || 0;
+    },
+
+    totalUnreadFor: function (appIds) {
+      return (appIds || []).reduce(function (total, appId) {
+        return total + (unreadCounts[appId] || 0);
+      }, 0);
     },
 
     init: function (options) {
@@ -1344,6 +1410,9 @@
     /** チャットタブを表示しているかどうか */
     setActive: function (active) {
       isActive = !!active;
+      if (isActive && currentAppId && cache[currentAppId] && cache[currentAppId].length) {
+        markRead(currentAppId, cache[currentAppId][cache[currentAppId].length - 1].created_at);
+      }
       syncPolling(true);
     },
 
@@ -1360,10 +1429,14 @@
       busyId = null;
       actionError = null;
       readsCache = {};
+      unreadInFlight = false;
+      unreadReady = false;
+      markingRead = {};
 
       if (!isLoggedIn()) {
         cache = {};
         counts = {};
+        unreadCounts = {};
         loadedOnce = {};
         listError = '';
         showPostError('');

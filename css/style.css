@@ -3127,6 +3127,12 @@ svg {
 }
 .sidebar__apps[hidden] { display: none; }
 
+.sidebar__general .app-item__count--unread,
+.sidebar__apps-toggle .app-item__count--unread {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
 @media (max-width: 760px) {
   .sidebar__nav { padding-top: 14px; }
   .app-item--general { min-height: 58px; }
@@ -3446,9 +3452,17 @@ body {
 .sidebar__apps > .app-item.is-active .app-item__name { color: var(--accent-dark); }
 
 .sidebar__apps > .app-item .app-item__count {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
   background: var(--accent);
   color: #fff;
   font-weight: 700;
+  line-height: 20px;
+  text-align: center;
 }
 
 @media (hover: hover) {
