@@ -44,9 +44,10 @@
   /* ---------------------------------------------------------
      タブの定義
      --------------------------------------------------------- */
+  // 表示名だけ入れ替えている（中身は id のまま：overview = アプリの説明・開くリンク、files = 資料の一覧）
   var TABS = [
-    { id: 'overview', label: '概要' },
-    { id: 'files',    label: 'ファイル' },
+    { id: 'overview', label: 'ファイル' },
+    { id: 'files',    label: '概要' },
     { id: 'chat',     label: 'チャット' }
   ];
 
@@ -310,7 +311,7 @@
 
     els.filesEl.innerHTML = '' +
       '<div class="panel__head">' +
-        '<h2 class="section-title">ファイル</h2>' +
+        '<h2 class="section-title">概要</h2>' +
         '<span class="panel__note">' + Util.escapeHtml(app.name) + ' の共有ファイル置き場</span>' +
       '</div>' +
       '<ul class="file-list">' + rows + '</ul>' +

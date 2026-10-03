@@ -184,7 +184,7 @@
   var PLACEHOLDER_GENERAL = '全体への連絡・相談を入力';
 
   function selectApp(appId) {
-    var wasGeneral = Apps.getCurrentId() === Apps.GENERAL_ID;
+    var previousId = Apps.getCurrentId();
     var app = Apps.select(appId);
     if (!app) { return; }
 
@@ -196,11 +196,11 @@
     Chat.show(appId);
 
     // 全体チャットは概要・ファイルを出さず、チャットを直接表示する。
-    // アプリに戻ったときは、そのアプリで使っていたタブに戻す。
+    // アプリを選び直したときは、毎回「概要」（id は files）から開く。
     if (app.general) {
       showTab('chat', false);
-    } else if (wasGeneral) {
-      showTab(Apps.getTab());
+    } else if (previousId !== appId) {
+      Apps.setTab('files');
     }
 
     var input = document.getElementById('commentInput');
