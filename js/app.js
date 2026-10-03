@@ -14,6 +14,7 @@
   var TAB_KEY = 'app-share/selected-tab';
 
   var dom = {};
+  var openGeneralNext = false;   // 起動時・ログイン直後は全体チャットから始める
 
   /* ---------------------------------------------------------
      トースト通知（alert の代わり）
@@ -60,6 +61,14 @@
    * 固定のアプリは持たないため、登録が0件のときは案内を出す。
    */
   function applyAppsState() {
+    // 起動時・ログイン直後の1回だけ、前回のアプリではなく全体チャットを開く
+    if (openGeneralNext && Apps.find(Apps.GENERAL_ID)) {
+      openGeneralNext = false;
+      dom.emptyApps.hidden = true;
+      selectApp(Apps.GENERAL_ID);
+      return;
+    }
+
     var list = Apps.list();
     var generalOpen = Apps.getCurrentId() === Apps.GENERAL_ID;
 
@@ -108,6 +117,7 @@
       dom.workbar.hidden = true;
       dom.mainScroll.hidden = true;
       dom.composer.hidden = true;
+      openGeneralNext = true;
       loadRemoteApps();
     } else {
       // 未ログインではアプリの中身を見せない
