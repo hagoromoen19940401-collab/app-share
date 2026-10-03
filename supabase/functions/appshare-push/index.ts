@@ -75,7 +75,7 @@ async function handleNotify(payload: Record<string, unknown>) {
     }
   }
 
-  const body = `${targets[0].author}さんから新しいコメント`;
+  const body = "新しいコメントがあります";
 
   const gone: string[] = [];
   let sent = 0;
