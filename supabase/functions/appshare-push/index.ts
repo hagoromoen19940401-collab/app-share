@@ -64,10 +64,18 @@ async function handleNotify(payload: Record<string, unknown>) {
   const targets = (data ?? []) as Target[];
   if (targets.length === 0) return json({ ok: true, sent: 0 });
 
-  const message = JSON.stringify({
-    title: "あぷりんく",
-    body: `${targets[0].author}さんから新しいコメント`,
+  // 端末ごとの未読合計（アプリアイコンのバッジ用）。取得できない場合は件数を付けずに送る
+  const badges = new Map<string, number>();
+  const { data: totals, error: totalsError } = await admin.rpc("appshare_push_unread_totals", {
+    p_endpoints: targets.map((target) => target.endpoint),
   });
+  if (!totalsError) {
+    for (const row of (totals ?? []) as { endpoint: string; unread_total: number }[]) {
+      badges.set(row.endpoint, Number(row.unread_total));
+    }
+  }
+
+  const body = `${targets[0].author}さんから新しいコメント`;
 
   const gone: string[] = [];
   let sent = 0;
@@ -76,7 +84,11 @@ async function handleNotify(payload: Record<string, unknown>) {
     try {
       await webpush.sendNotification(
         { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
-        message,
+        JSON.stringify({
+          title: "あぷりんく",
+          body,
+          ...(Number.isFinite(badges.get(target.endpoint)) ? { badge: badges.get(target.endpoint) } : {}),
+        }),
         { TTL: 60 * 60 * 24 },
       );
       sent += 1;

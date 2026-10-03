@@ -863,6 +863,7 @@
       });
       unreadCounts = next;
       unreadReady = true;
+      syncAppBadge();
       if (hooks.onCountsChanged) { hooks.onCountsChanged(); }
       if (isActive && currentAppId && cache[currentAppId] && cache[currentAppId].length) {
         markRead(currentAppId, cache[currentAppId][cache[currentAppId].length - 1].created_at);
@@ -872,6 +873,21 @@
     }).then(function () {
       unreadInFlight = false;
     });
+  }
+
+  /** 未読の合計をアプリアイコンのバッジへ反映する（対応している端末のみ）。 */
+  function syncAppBadge() {
+    var nav = global.navigator;
+    if (!nav || !nav.setAppBadge || !nav.clearAppBadge) { return; }
+
+    var total = Object.keys(unreadCounts).reduce(function (sum, appId) {
+      return sum + (unreadCounts[appId] || 0);
+    }, 0);
+
+    try {
+      var done = total > 0 ? nav.setAppBadge(total) : nav.clearAppBadge();
+      if (done && done.catch) { done.catch(function () { /* 反映できなくても画面は動く */ }); }
+    } catch (e) { /* 反映できなくても画面は動く */ }
   }
 
   /** 表示中のチャットをサーバー側で既読にする。 */
@@ -886,6 +902,7 @@
     }).then(function (rows) {
       var result = rows && rows[0];
       unreadCounts[appId] = result ? (Number(result.unread_count) || 0) : 0;
+      syncAppBadge();
       if (hooks.onCountsChanged) { hooks.onCountsChanged(); }
     }).catch(function (error) {
       if (isAuthError(error) && hooks.onSessionExpired) { hooks.onSessionExpired(); }
@@ -1437,6 +1454,7 @@
         cache = {};
         counts = {};
         unreadCounts = {};
+        syncAppBadge();
         loadedOnce = {};
         listError = '';
         showPostError('');

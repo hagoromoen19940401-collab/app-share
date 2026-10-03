@@ -17,13 +17,31 @@ self.addEventListener('push', function (event) {
   var data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }
 
-  event.waitUntil(self.registration.showNotification(data.title || 'あぷりんく', {
-    body: data.body || '新しいコメントがあります',
-    icon: './assets/icon-192.png',
-    tag: 'appshare-chat',
-    renotify: true
-  }));
+  event.waitUntil(Promise.all([
+    self.registration.showNotification(data.title || 'あぷりんく', {
+      body: data.body || '新しいコメントがあります',
+      icon: './assets/icon-192.png',
+      tag: 'appshare-chat',
+      renotify: true
+    }),
+    updateBadge(data.badge)
+  ]));
 });
+
+/* 未読の合計をアプリアイコンのバッジへ反映する。
+   件数が届いていない通知・対応していない端末では何もしない */
+function updateBadge(count) {
+  var nav = self.navigator;
+  if (typeof count !== 'number' || !isFinite(count) || count < 0) { return Promise.resolve(); }
+  if (!nav || !nav.setAppBadge || !nav.clearAppBadge) { return Promise.resolve(); }
+
+  try {
+    return Promise.resolve(count > 0 ? nav.setAppBadge(count) : nav.clearAppBadge())
+      .catch(function () { /* 反映できなくても通知は表示する */ });
+  } catch (e) {
+    return Promise.resolve();
+  }
+}
 
 /* 通知を押したら「あぷりんく」を開く（開いていれば前面に出す） */
 self.addEventListener('notificationclick', function (event) {
