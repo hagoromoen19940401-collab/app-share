@@ -84,6 +84,27 @@
   }
 
   var Api = {
+    /** 説明資料は独自セッションを検証する専用Edge Function経由で扱う */
+    filesRequest: function (payload) {
+      return fetch(CONFIG.url + '/functions/v1/appshare-files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(readFunctionResponse);
+    },
+
+    fileUpload: function (token, settingsToken, appId, file) {
+      var form = new FormData();
+      form.append('action', 'upload');
+      form.append('token', token);
+      form.append('settings_token', settingsToken);
+      form.append('app_id', appId);
+      form.append('file', file);
+      return fetch(CONFIG.url + '/functions/v1/appshare-files', {
+        method: 'POST', body: form
+      }).then(readFunctionResponse);
+    },
+
     /** supabase-js が読み込めているか */
     isReady: function () { return !!getClient(); },
 
@@ -239,10 +260,14 @@
      * 戻り値は { ok, message, app_name, image_paths }
      */
     appDelete: function (token, settingsToken, appId) {
-      return rpc('appshare_app_delete', {
-        p_token: token,
-        p_settings_token: settingsToken,
-        p_app_id: appId
+      return Api.filesRequest({
+        action: 'delete-app-files', token: token, settings_token: settingsToken, app_id: appId
+      }).then(function () {
+        return rpc('appshare_app_delete', {
+          p_token: token,
+          p_settings_token: settingsToken,
+          p_app_id: appId
+        });
       }).then(function (rows) {
         return (rows && rows[0]) || { ok: false, message: '削除できませんでした' };
       });

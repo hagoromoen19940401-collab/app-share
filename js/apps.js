@@ -1,14 +1,13 @@
 /* =========================================================
    js/apps.js
    アプリ一覧（左側）と アプリの画面（右側）の描画
-   右側は「概要 / ファイル / チャット」の3タブ構成
+   右側は「ファイル / チャット」の2タブ構成
    ========================================================= */
 
 (function (global) {
   'use strict';
 
   var Util = global.AppShareUtil;
-  var Data = global.AppShareData;
 
   /* ---------------------------------------------------------
      線画アイコン（絵文字は使わない）
@@ -32,22 +31,12 @@
     return '<span class="' + className + '" aria-hidden="true"><svg viewBox="0 0 24 24">' + path + '</svg></span>';
   }
 
-  /** ファイル区分ごとのアイコン */
-  var FILE_ICONS = {
-    latest: 'file',
-    archive: 'archive',
-    pdf: 'file',
-    image: 'image',
-    document: 'book'
-  };
-
   /* ---------------------------------------------------------
      タブの定義
      --------------------------------------------------------- */
-  // 表示名だけ入れ替えている（中身は id のまま：overview = アプリの説明・開くリンク、files = 資料の一覧）
+  // overview は既存のアプリ説明・開くリンクを持つファイルタブ。
   var TABS = [
     { id: 'overview', label: 'ファイル' },
-    { id: 'files',    label: '概要' },
     { id: 'chat',     label: 'チャット' }
   ];
 
@@ -270,58 +259,6 @@
   }
 
   /* ---------------------------------------------------------
-     ファイルタブ
-     今回は「置き場所の枠」だけを表示する（登録機能はまだ作らない）
-     --------------------------------------------------------- */
-  function fileRowHtml(app, category) {
-    var registered = (app.files || []).filter(function (file) {
-      return file.category === category.id;
-    });
-
-    var meta;
-
-    if (registered.length) {
-      // 将来ファイルが登録されたときの表示
-      meta = registered.map(function (file) {
-        return Util.escapeHtml(file.label || file.id);
-      }).join('　');
-    } else {
-      meta = Util.escapeHtml(category.hint);
-    }
-
-    var state = registered.length
-      ? '<span class="badge badge--running">' + registered.length + '件</span>'
-      : '<span class="badge">ファイル未登録</span>';
-
-    return '' +
-      '<li class="file-row">' +
-        icon(FILE_ICONS[category.id] || 'file', 'file-row__icon') +
-        '<span class="file-row__body">' +
-          '<span class="file-row__label">' + Util.escapeHtml(category.label) + '</span>' +
-          '<span class="file-row__meta">' + meta + '</span>' +
-        '</span>' +
-        state +
-      '</li>';
-  }
-
-  function renderFiles(app) {
-    var rows = Data.fileCategories.map(function (category) {
-      return fileRowHtml(app, category);
-    }).join('');
-
-    els.filesEl.innerHTML = '' +
-      '<div class="panel__head">' +
-        '<h2 class="section-title">概要</h2>' +
-        '<span class="panel__note">' + Util.escapeHtml(app.name) + ' の共有ファイル置き場</span>' +
-      '</div>' +
-      '<ul class="file-list">' + rows + '</ul>' +
-      '<div class="inline-notice inline-notice--quiet">' +
-        icon('info', 'inline-notice__icon') +
-        '<span>ファイルの登録はまだ行えません。PDF・画像・説明資料など、アプリに関する資料を置けるようにする予定です。</span>' +
-      '</div>';
-  }
-
-  /* ---------------------------------------------------------
      公開する処理
      --------------------------------------------------------- */
   var Apps = {
@@ -386,7 +323,9 @@
       renderWorkbar(app);
       if (!app.general) {
         renderDetail(app);
-        renderFiles(app);
+        global.AppShareFiles.show(els.filesEl, app.id);
+      } else {
+        global.AppShareFiles.clear();
       }
       return app;
     },
@@ -395,6 +334,7 @@
     setTab: function (tabId) {
       var app = findApp(currentAppId);
       if (!app) { return; }
+      if (!TABS.some(function (tab) { return tab.id === tabId; })) { return; }
       currentTab = tabId;
       renderWorkbar(app);
       if (onTabChange) { onTabChange(tabId); }
@@ -429,6 +369,7 @@
       if (!loggedIn) {
         remoteApps = [];
         currentAppId = null;
+        global.AppShareFiles.clear();
       }
       renderList();
     },

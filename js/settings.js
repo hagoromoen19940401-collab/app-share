@@ -297,6 +297,7 @@
   function keepSettingsSession(token, validUntil) {
     settingsSession = { token: token, expiresAt: validUntil };
     writeSettingsSession(settingsSession);
+    global.AppShareFiles.refreshControls();
   }
 
   /* ---------------------------------------------------------
@@ -1192,7 +1193,8 @@
       });
     },
     open: open,
-    close: close
+    close: close,
+    getToken: settingsToken
   };
 
   global.AppShareSettings = Settings;

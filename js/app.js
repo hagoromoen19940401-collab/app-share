@@ -195,12 +195,12 @@
 
     Chat.show(appId);
 
-    // 全体チャットは概要・ファイルを出さず、チャットを直接表示する。
-    // アプリを選び直したときは、毎回「概要」（id は files）から開く。
+    // 全体チャットはチャットを直接表示する。
+    // アプリを選び直したときは、毎回「ファイル」から開く。
     if (app.general) {
       showTab('chat', false);
     } else if (previousId !== appId) {
-      Apps.setTab('files');
+      Apps.setTab('overview');
     }
 
     var input = document.getElementById('commentInput');
@@ -260,7 +260,6 @@
     });
     dom.panels     = {
       overview: document.getElementById('panelOverview'),
-      files:    document.getElementById('panelFiles'),
       chat:     document.getElementById('panelChat')
     };
 
