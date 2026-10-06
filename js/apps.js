@@ -23,6 +23,7 @@
     file:      '<path d="M6.5 3.5h8l4 4v13h-12z"/><path d="M14.5 3.5v4h4"/>',
     archive:   '<path d="M4 7.5h16v12H4z"/><path d="M3 4.5h18v3H3z"/><path d="M10 11.5h4"/>',
     image:     '<path d="M4 5.5h16v13H4z"/><path d="M4 15l4.5-4 4 3.5 3-2.5L20 16"/><path d="M9 9.8v.2"/>',
+    home:      '<path d="M4 11l8-6.5 8 6.5"/><path d="M6 10v9.5h12V10"/>',
     book:      '<path d="M4.5 4.5h6a3 3 0 013 3v12a2.5 2.5 0 00-2.5-2.5h-6.5z"/><path d="M19.5 4.5h-6a3 3 0 00-3 3v12a2.5 2.5 0 012.5-2.5h6.5z"/>'
   };
 
@@ -77,11 +78,15 @@
   var onTabChange = null;
   var onRequireLogin = null;
   var onOpenSettings = null;
+  var onHome = null;
   var currentAppId = null;
   var currentTab = 'overview';
   var remoteApps = [];   // Supabaseに登録されたアプリ
   var loggedIn = false;
   var appsExpanded = true;
+  var homeActive = false;
+  var RECENT_KEY = 'app-share/recent-apps';
+  var RECENT_MAX = 4;
 
   /** Supabaseの1行を、画面で使う形に合わせる */
   function toApp(row) {
@@ -125,7 +130,57 @@
       '</button>';
   }
 
+  /* ---------------------------------------------------------
+     最近使ったアプリ（この端末のlocalStorageのみ。全体チャットは含めない）
+     --------------------------------------------------------- */
+  function readRecent() {
+    try {
+      var saved = JSON.parse(global.localStorage.getItem(RECENT_KEY));
+      return Array.isArray(saved) ? saved.filter(function (id) { return typeof id === 'string'; }) : [];
+    } catch (e) { return []; }
+  }
+
+  function recordRecent(appId) {
+    if (!appId || appId === GENERAL_ID) { return; }
+    var ids = [appId].concat(readRecent().filter(function (id) { return id !== appId; })).slice(0, RECENT_MAX);
+    try { global.localStorage.setItem(RECENT_KEY, JSON.stringify(ids)); } catch (e) { /* 保存できなくても動作する */ }
+  }
+
+  /** ホーム：削除されたアプリは表示しない */
+  function renderHome() {
+    if (!els.homeEl) { return; }
+    var apps = readRecent().map(function (id) {
+      for (var i = 0; i < remoteApps.length; i++) { if (remoteApps[i].id === id) { return remoteApps[i]; } }
+      return null;
+    }).filter(Boolean).slice(0, RECENT_MAX);
+    els.homeEl.innerHTML = '<h2 class="section-title">最近使ったアプリ</h2>' +
+      (apps.length
+        ? '<div class="home__list">' + apps.map(appItemHtml).join('') + '</div>'
+        : '<p class="panel__note">最近使ったアプリはありません。アプリ一覧から開いてください。</p>');
+  }
+
+  /** 下部ナビの選択表示と未読バッジ（ナビが非表示の端末でも更新して問題ない） */
+  function renderNav() {
+    if (!els.navEl) { return; }
+    var general = currentAppId === GENERAL_ID;
+    var counts = {
+      chat: global.AppShareChat.unreadFor(GENERAL_ID),
+      apps: global.AppShareChat.totalUnreadFor(remoteApps.map(function (app) { return app.id; }))
+    };
+    els.navEl.querySelectorAll('[data-nav]').forEach(function (button) {
+      var key = button.getAttribute('data-nav');
+      var active = key === 'home' ? homeActive : key === 'chat' ? general : (!!currentAppId && !general);
+      button.classList.toggle('is-active', active);
+      if (active) { button.setAttribute('aria-current', 'page'); } else { button.removeAttribute('aria-current'); }
+      var badge = button.querySelector('.bottomnav__badge');
+      var count = counts[key] || 0;
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.hidden = !count;
+    });
+  }
+
   function renderList() {
+    renderNav();
     if (!loggedIn) {
       els.listEl.innerHTML = '' +
         '<div class="sidebar-empty">' +
@@ -139,7 +194,12 @@
 
     var list = allApps();
     var appsUnread = global.AppShareChat.totalUnreadFor(list.map(function (app) { return app.id; }));
-    var general = '' +
+    var home = '' +
+      '<button class="app-item app-item--general' + (homeActive ? ' is-active' : '') + '" type="button" data-home' + (homeActive ? ' aria-current="true"' : '') + '>' +
+        '<span class="app-item__tile" aria-hidden="true"><svg viewBox="0 0 24 24">' + ICONS.home + '</svg></span>' +
+        '<span class="app-item__body"><span class="app-item__name">ホーム</span></span>' +
+      '</button>';
+    var general = home +
       '<div class="sidebar__general">' + appItemHtml(GENERAL) + '</div>' +
       '<button class="app-item app-item--general sidebar__apps-toggle" type="button" aria-expanded="' + appsExpanded + '" aria-controls="sidebarApps">' +
         '<span class="app-item__tile" aria-hidden="true"><svg viewBox="0 0 24 24">' + ICONS.folder + '</svg></span>' +
@@ -272,15 +332,22 @@
       els.workbarEl  = options.workbarEl;
       els.detailEl   = options.detailEl;
       els.filesEl    = options.filesEl;
+      els.homeEl     = options.homeEl;
+      els.navEl      = options.navEl;
       onSelect       = options.onSelect;
       onOpenApp      = options.onOpenApp;
       onTabChange    = options.onTabChange;
       onRequireLogin = options.onRequireLogin;
       onOpenSettings = options.onOpenSettings;
+      onHome         = options.onHome;
 
       if (options.initialTab) { currentTab = options.initialTab; }
 
       els.listEl.addEventListener('click', function (event) {
+        if (event.target.closest('[data-home]')) {
+          if (onHome) { onHome(); }
+          return;
+        }
         var toggle = event.target.closest('.sidebar__apps-toggle');
         if (toggle) {
           var apps = els.listEl.querySelector('#sidebarApps');
@@ -304,6 +371,14 @@
         if (appId && appId !== currentAppId && onSelect) { onSelect(appId); }
       });
 
+      if (els.homeEl) {
+        els.homeEl.addEventListener('click', function (event) {
+          var card = event.target.closest('.app-item');
+          var appId = card && card.getAttribute('data-app-id');
+          if (appId && onSelect) { onSelect(appId); }
+        });
+      }
+
       els.workbarEl.addEventListener('click', function (event) {
         var button = event.target.closest('.tab');
         if (!button) { return; }
@@ -319,6 +394,7 @@
       var app = findApp(appId);
       if (!app) { return null; }
       currentAppId = appId;
+      homeActive = false;
       renderList();
       renderWorkbar(app);
       if (!app.general) {
@@ -329,6 +405,20 @@
       }
       return app;
     },
+
+    /** ホームを表示する状態にする（アプリの選択は外す） */
+    showHome: function () {
+      currentAppId = null;
+      homeActive = true;
+      global.AppShareFiles.clear();
+      renderList();
+      renderHome();
+    },
+
+    isHome: function () { return homeActive; },
+
+    /** 最近使ったアプリに記録する（全体チャットは記録しない） */
+    recordRecent: recordRecent,
 
     /** タブを切り替える（アプリの選択はそのまま） */
     setTab: function (tabId) {
@@ -345,6 +435,7 @@
     /** コメント数の表示だけ更新する */
     refreshCounts: function () {
       renderList();
+      if (homeActive) { renderHome(); }
       var app = findApp(currentAppId);
       if (app) { renderWorkbar(app); }
     },
@@ -369,6 +460,7 @@
       if (!loggedIn) {
         remoteApps = [];
         currentAppId = null;
+        homeActive = false;
         global.AppShareFiles.clear();
       }
       renderList();
@@ -378,6 +470,7 @@
     setRemoteApps: function (rows) {
       remoteApps = (rows || []).map(toApp);
       renderList();
+      if (homeActive) { renderHome(); }
     },
 
     /** 既存5アプリ + 登録アプリ */

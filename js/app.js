@@ -61,6 +61,9 @@
    * 固定のアプリは持たないため、登録が0件のときは案内を出す。
    */
   function applyAppsState() {
+    // ホーム表示中は、アプリ一覧の再取得で画面を切り替えない
+    if (Apps.isHome() && !openGeneralNext) { return; }
+
     // 起動時・ログイン直後の1回だけ、前回のアプリではなく全体チャットを開く
     if (openGeneralNext && Apps.find(Apps.GENERAL_ID)) {
       openGeneralNext = false;
@@ -109,6 +112,8 @@
 
     Apps.setLoggedIn(!!session);
     Chat.onAuthChange();
+    dom.home.hidden = true;
+    dom.bottomNav.hidden = !session;
 
     if (session) {
       // 表示の切り替えは、アプリ一覧を受け取ってから行う
@@ -183,10 +188,25 @@
   var PLACEHOLDER_APP     = 'このアプリについてのコメントを入力';
   var PLACEHOLDER_GENERAL = '全体への連絡・相談を入力';
 
+  /** ホームを表示する（最近使ったアプリ）。チャットは非表示扱いにして既読処理を止める */
+  function showHome() {
+    Apps.showHome();
+    Chat.setActive(false);
+    dom.emptyApps.hidden = true;
+    dom.workbar.hidden = true;
+    dom.mainScroll.hidden = true;
+    dom.composer.hidden = true;
+    dom.home.hidden = false;
+    dom.home.scrollTop = 0;
+    setSidebar(false);
+    document.title = 'あぷりんく';
+  }
+
   function selectApp(appId) {
     var previousId = Apps.getCurrentId();
     var app = Apps.select(appId);
     if (!app) { return; }
+    dom.home.hidden = true;
 
     // アプリが0件の案内が出ていても、選んだ画面を表示する
     dom.emptyApps.hidden = true;
@@ -252,6 +272,16 @@
     dom.workbar     = document.getElementById('workbar');
     dom.loginPrompt = document.getElementById('loginPrompt');
     dom.emptyApps   = document.getElementById('emptyApps');
+    dom.home        = document.getElementById('home');
+    dom.bottomNav   = document.getElementById('bottomNav');
+    dom.bottomNav.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-nav]');
+      if (!button || !Auth.isLoggedIn()) { return; }
+      var key = button.getAttribute('data-nav');
+      if (key === 'home') { showHome(); }
+      else if (key === 'chat') { selectApp(Apps.GENERAL_ID); }
+      else { setSidebar(!dom.sidebar.classList.contains('is-open')); }
+    });
     dom.emptyApps.addEventListener('click', function (event) {
       if (event.target.closest('[data-open-settings]')) { global.AppShareSettings.open(); }
     });
@@ -272,7 +302,11 @@
       detailEl: document.getElementById('appDetail'),
       filesEl: document.getElementById('appFiles'),
       initialTab: initialTab,
-      onSelect: selectApp,
+      homeEl: document.getElementById('home'),
+      navEl: document.getElementById('bottomNav'),
+      onHome: showHome,
+      // 利用者が選んだときだけ記録する（起動時の復元では記録しない）
+      onSelect: function (appId) { selectApp(appId); Apps.recordRecent(appId); },
       onOpenApp: openApp,
       onTabChange: showTab,
       onRequireLogin: function () { Auth.open(); },

@@ -224,8 +224,14 @@
     function place() {
       var visible = !composer.hidden && composer.offsetParent !== null;
       composerOffset = visible ? composer.getBoundingClientRect().height + 10 : 0;
+      // 下部ナビが表示されている間は、その上に表示する
+      var nav = document.getElementById('bottomNav');
+      var navHeight = nav && nav.offsetParent !== null ? nav.offsetHeight : 0;
+      if (navHeight) { composerOffset += navHeight + (visible ? 0 : 16); }
       layout();
     }
+    global.addEventListener('resize', place);
+    global.addEventListener('orientationchange', place);
 
     if ('ResizeObserver' in global) {
       new global.ResizeObserver(place).observe(composer);
