@@ -753,6 +753,25 @@ svg {
 
 .comment-list { padding: 4px 0 12px; }
 
+.comment-unread-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.comment-unread-divider::before,
+.comment-unread-divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--accent-line);
+}
+
+.comment-unread-divider span { flex: none; }
+
 .comment {
   display: flex;
   gap: 12px;

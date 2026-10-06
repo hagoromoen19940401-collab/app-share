@@ -132,6 +132,9 @@
   var unreadInFlight = false;
   var unreadReady = false;    // 職員ごとの初回基準時刻を取得済みか
   var markingRead = {};
+  var openingUnreadCount = null; // 表示開始時の未読件数。既読化・ポーリングでは更新しない
+  var unreadStartId = null;      // 区切り線を置くコメントID
+  var unreadStartAt = null;      // そのコメントが削除された場合の位置
   var listError  = '';
   var postError  = '';
   var signature  = '';        // 表示中の内容。変わらなければ描画し直さない
@@ -503,10 +506,41 @@
     return (currentAppId && cache[currentAppId]) || [];
   }
 
+  function resetUnreadDivider() {
+    openingUnreadCount = null;
+    unreadStartId = null;
+    unreadStartAt = null;
+  }
+
+  /** 初回だけ末尾から他職員のコメントを数え、以後は同じ位置を維持する。 */
+  function unreadDividerIndex(rows) {
+    if (!openingUnreadCount || !rows.length) { return -1; }
+    if (!unreadStartId) {
+      var remaining = openingUnreadCount;
+      for (var i = rows.length - 1; i >= 0; i--) {
+        if (rows[i].is_mine) { continue; }
+        unreadStartId = rows[i].id;
+        unreadStartAt = Date.parse(rows[i].created_at);
+        remaining -= 1;
+        if (remaining <= 0) { break; }
+      }
+    }
+    if (!unreadStartId) { return -1; }
+    for (var j = 0; j < rows.length; j++) {
+      if (rows[j].id === unreadStartId) { return j; }
+    }
+    for (var k = 0; k < rows.length; k++) {
+      if (Date.parse(rows[k].created_at) >= unreadStartAt) { return k; }
+    }
+    return rows.length;
+  }
+
   function buildSignature(rows) {
     return [
       isLoggedIn() ? '1' : '0',
       currentAppId || '',
+      openingUnreadCount === null ? '' : openingUnreadCount,
+      unreadStartId || '',
       listError,
       editingId || '',
       deletingId || '',
@@ -525,6 +559,7 @@
     if (!force && editingId) { return; }
 
     var rows = currentRows();
+    var dividerIndex = unreadDividerIndex(rows);
     var next = buildSignature(rows);
     if (!force && next === signature) { return; }   // 変化がなければ描き直さない
 
@@ -540,7 +575,9 @@
       body = loadedOnce[currentAppId] ? emptyHtml() : loadingHtml();
     } else {
       body = (listError ? noticeHtml(listError) : '') +
-             '<div class="comment-list">' + rows.map(commentHtml).join('') + '</div>';
+             '<div class="comment-list">' + rows.map(function (row, index) {
+               return (index === dividerIndex ? unreadDividerHtml() : '') + commentHtml(row);
+             }).join('') + (dividerIndex === rows.length ? unreadDividerHtml() : '') + '</div>';
     }
 
     els.listEl.innerHTML = '' +
@@ -565,6 +602,10 @@
 
   function loadingHtml() {
     return '<div class="empty"><p class="empty__text">コメントを読み込んでいます…</p></div>';
+  }
+
+  function unreadDividerHtml() {
+    return '<div class="comment-unread-divider" role="separator" aria-label="ここから未読"><span>ここから未読</span></div>';
   }
 
   /* ---------------------------------------------------------
@@ -893,6 +934,11 @@
   /** 表示中のチャットをサーバー側で既読にする。 */
   function markRead(appId, readAt) {
     if (!appId || !readAt || !unreadReady || !isLoggedIn() || markingRead[appId]) { return Promise.resolve(); }
+    // 全体・アプリチャット共通。サーバーの既読化より先に一度だけ保持する。
+    if (isActive && appId === currentAppId && openingUnreadCount === null) {
+      openingUnreadCount = unreadCounts[appId] || 0;
+      renderList(false);
+    }
     markingRead[appId] = true;
 
     return global.AppShareSupabase.rpc('appshare_unread_mark_read', {
@@ -1402,6 +1448,7 @@
 
     /** 表示するアプリを切り替える */
     show: function (appId) {
+      if (appId !== currentAppId) { resetUnreadDivider(); }
       currentAppId = appId;
       listError = '';
       closeLightbox();
@@ -1426,6 +1473,7 @@
 
     /** チャットタブを表示しているかどうか */
     setActive: function (active) {
+      if (!active || !isActive) { resetUnreadDivider(); }
       isActive = !!active;
       if (isActive && currentAppId && cache[currentAppId] && cache[currentAppId].length) {
         markRead(currentAppId, cache[currentAppId][cache[currentAppId].length - 1].created_at);
@@ -1435,6 +1483,7 @@
 
     /** ログイン状態が変わったとき */
     onAuthChange: function () {
+      resetUnreadDivider();
       closeLightbox();
       clearPendingImages();
       imageUrls = {};
