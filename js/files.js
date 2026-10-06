@@ -1,4 +1,4 @@
-/* 説明資料（PDF）。資料・一時URLはブラウザに永続保存しない。 */
+/* 資料（PDF / Excel）。資料・一時URLはブラウザに永続保存しない。 */
 (function (global) {
   'use strict';
 
@@ -23,15 +23,15 @@
     if (!el) { return; }
     var escape = global.AppShareUtil.escapeHtml;
     var unlocked = !!token() && !!gate();
-    el.innerHTML = '<div class="panel__head"><h2 class="section-title">説明資料</h2>' +
-      (unlocked ? '<button class="button button--ghost" type="button" data-add' + (busy ? ' disabled' : '') + '>説明資料を追加</button>' +
-        '<input type="file" accept=".pdf,application/pdf" multiple hidden data-pdfs>' : '') + '</div>' +
-      '<p class="panel__note">PDF（1ファイル10MBまで）</p>' +
+    el.innerHTML = '<div class="panel__head"><h2 class="section-title">資料</h2>' +
+      (unlocked ? '<button class="button button--ghost" type="button" data-add' + (busy ? ' disabled' : '') + '>資料を追加</button>' +
+        '<input type="file" accept=".pdf,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple hidden data-pdfs>' : '') + '</div>' +
+      '<p class="panel__note">PDF / Excel（.xlsx）、1ファイル10MBまで</p>' +
       (rows.length ? '<ul class="file-list">' + rows.map(function (row) {
         return '<li class="file-row"><span class="file-row__body"><span class="file-row__label">' + escape(row.file_name) + '</span></span>' +
           '<button class="button button--ghost" type="button" data-view="' + escape(row.id) + '"' + (busy ? ' disabled' : '') + '>開く</button>' +
           (unlocked ? '<button class="button button--ghost" type="button" data-delete="' + escape(row.id) + '"' + (busy ? ' disabled' : '') + '>削除</button>' : '') + '</li>';
-      }).join('') + '</ul>' : '<p class="panel__note">説明資料は登録されていません。</p>') +
+      }).join('') + '</ul>' : '<p class="panel__note">資料は登録されていません。</p>') +
       '<p role="status" data-message></p>';
     el.querySelector('[data-message]').textContent = message;
     el.querySelectorAll('[data-add], [data-delete]').forEach(function (button) {
@@ -80,7 +80,7 @@
     if (fileId) {
       // 非同期処理より先に開き、スマートフォンのポップアップ制限を避ける。
       var tab = global.open('about:blank', '_blank');
-      if (!tab) { message = 'PDFを開くため、ポップアップを許可してください。'; render(); return; }
+      if (!tab) { message = 'ファイルを開くため、ポップアップを許可してください。'; render(); return; }
       tab.opener = null;
       var seq = generation;
       global.AppShareSupabase.filesRequest({ action: 'view', token: token(), app_id: appId, file_id: fileId }).then(function (result) {
@@ -93,7 +93,7 @@
       return;
     }
     fileId = button.getAttribute('data-delete');
-    if (!fileId || !gate() || !global.confirm('この説明資料を削除しますか？')) { return; }
+    if (!fileId || !gate() || !global.confirm('この資料を削除しますか？')) { return; }
     var payload = { action: 'delete', token: token(), settings_token: gate(), app_id: appId, file_id: fileId };
     run(function () { return global.AppShareSupabase.filesRequest(payload); });
   }
@@ -102,8 +102,8 @@
     if (!event.target.matches('[data-pdfs]') || busy || !gate()) { return; }
     var files = Array.prototype.slice.call(event.target.files);
     if (!files.length) { return; }
-    if (files.some(function (file) { return !/\.pdf$/i.test(file.name) || file.size <= 0 || file.size > 10 * 1024 * 1024; })) {
-      message = '10MB以内のPDFを選択してください。'; render(); return;
+    if (files.some(function (file) { return !/\.(pdf|xlsx)$/i.test(file.name) || file.size <= 0 || file.size > 10 * 1024 * 1024; })) {
+      message = '10MB以内のPDFまたはExcel（.xlsx）を選択してください。'; render(); return;
     }
     var id = appId;
     var seq = generation;
@@ -127,7 +127,7 @@
       var seq = generation;
       el.addEventListener('click', click);
       el.addEventListener('change', change);
-      message = '説明資料を読み込んでいます…';
+      message = '資料を読み込んでいます…';
       render();
       load(id, seq).then(function () {
         if (seq === generation) { message = ''; render(); }
