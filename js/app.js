@@ -310,6 +310,7 @@
       filesEl: document.getElementById('appFiles'),
       initialTab: initialTab,
       chatListEl: document.getElementById('chatList'),
+      onScreen: showListScreen,
       appsScreenEl: document.getElementById('appsScreen'),
       navEl: document.getElementById('bottomNav'),
       onSelect: selectApp,
