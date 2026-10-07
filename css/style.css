@@ -3894,6 +3894,9 @@ body {
 
   .layout { height: calc(100% - var(--header-h) - var(--bottomnav-h)); }
 
+  /* 下部ナビがあるため、ヘッダーの旧「メニュー」ボタンは隠す（サイドバーは下部ナビの「アプリ」で開く） */
+  .header .header__nav-toggle { display: none; }
+
   .bottomnav {
     position: fixed;
     left: 0;
