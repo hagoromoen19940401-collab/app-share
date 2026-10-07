@@ -4000,3 +4000,8 @@ body {
 .sidebar__main { min-height: 64px; margin-bottom: 8px; padding: 12px 14px; gap: 12px; border-radius: 14px; }
 .sidebar__main .app-item__name { font-size: 16px; font-weight: 700; }
 .sidebar__main .app-item__tile { width: 38px; height: 38px; padding: 9px; border-radius: 11px; }
+
+/* PC / iPad横向き：左サイドバーの「チャット」「アプリ」は1行に1ボタンの縦並び */
+@media (min-width: 1025px) {
+  .sidebar__nav { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
