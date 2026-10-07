@@ -84,6 +84,7 @@
   var loggedIn = false;
   var appsExpanded = true;
   var chatListActive = false;
+  var appsScreenActive = false;
 
   /** Supabaseの1行を、画面で使う形に合わせる */
   function toApp(row) {
@@ -133,18 +134,29 @@
      --------------------------------------------------------- */
   function renderChatList() {
     if (!els.chatListEl) { return; }
-    els.chatListEl.innerHTML = '<h2 class="section-title">チャット</h2>' +
-      '<div class="chatlist__list">' + [GENERAL].concat(remoteApps).map(appItemHtml).join('') + '</div>';
+    els.chatListEl.innerHTML = '<h2 class="section-title">全体チャット</h2>' +
+      '<div class="chatlist__list">' + appItemHtml(GENERAL) + '</div>' +
+      '<h2 class="section-title chatlist__sub">アプリ別チャット</h2>' +
+      (remoteApps.length
+        ? '<div class="chatlist__list">' + remoteApps.map(appItemHtml).join('') + '</div>'
+        : '<p class="panel__note">公開アプリはまだ登録されていません。</p>');
+  }
+
+  /** 公開アプリ一覧（下部ナビの「アプリ」）。全体チャットは含めない */
+  function renderAppsScreen() {
+    if (!els.appsScreenEl) { return; }
+    els.appsScreenEl.innerHTML = '<h2 class="section-title">公開アプリ</h2>' +
+      (remoteApps.length
+        ? '<div class="appsgrid">' + remoteApps.map(appItemHtml).join('') + '</div>'
+        : '<p class="panel__note">公開アプリはまだ登録されていません。</p>');
   }
 
   /** 下部ナビの選択表示と未読バッジ（ナビが非表示の端末でも更新して問題ない） */
   function renderNav() {
     if (!els.navEl) { return; }
-    var sidebar = document.getElementById('sidebar');
-    var drawerOpen = !!sidebar && sidebar.classList.contains('is-open');
     var app = findApp(currentAppId);
-    var chatActive = !drawerOpen && (chatListActive || (!!app && (app.general || currentTab === 'chat')));
-    var appsActive = drawerOpen || (!chatActive && !!app);
+    var chatActive = !appsScreenActive && (chatListActive || (!!app && (app.general || currentTab === 'chat')));
+    var appsActive = appsScreenActive || (!chatActive && !!app);
     var unread = global.AppShareChat.totalUnreadFor([GENERAL_ID].concat(remoteApps.map(function (item) { return item.id; })));
     els.navEl.querySelectorAll('[data-nav]').forEach(function (button) {
       var isChat = button.getAttribute('data-nav') === 'chat';
@@ -308,6 +320,7 @@
       els.detailEl   = options.detailEl;
       els.filesEl    = options.filesEl;
       els.chatListEl = options.chatListEl;
+      els.appsScreenEl = options.appsScreenEl;
       els.navEl      = options.navEl;
       onSelect       = options.onSelect;
       onOpenApp      = options.onOpenApp;
@@ -342,6 +355,14 @@
         if (appId && appId !== currentAppId && onSelect) { onSelect(appId); }
       });
 
+      if (els.appsScreenEl) {
+        els.appsScreenEl.addEventListener('click', function (event) {
+          var card = event.target.closest('.app-item');
+          var appId = card && card.getAttribute('data-app-id');
+          if (appId && onSelect) { onSelect(appId); }
+        });
+      }
+
       if (els.chatListEl) {
         els.chatListEl.addEventListener('click', function (event) {
           var card = event.target.closest('.app-item');
@@ -366,6 +387,7 @@
       if (!app) { return null; }
       currentAppId = appId;
       chatListActive = false;
+      appsScreenActive = false;
       renderList();
       renderWorkbar(app);
       if (!app.general) {
@@ -381,12 +403,24 @@
     showChatList: function () {
       currentAppId = null;
       chatListActive = true;
+      appsScreenActive = false;
       global.AppShareFiles.clear();
       renderList();
       renderChatList();
     },
 
-    isChatList: function () { return chatListActive; },
+    /** 公開アプリ一覧画面を表示する状態にする（アプリの選択は外す） */
+    showAppsScreen: function () {
+      currentAppId = null;
+      chatListActive = false;
+      appsScreenActive = true;
+      global.AppShareFiles.clear();
+      renderList();
+      renderAppsScreen();
+    },
+
+    /** チャット一覧 / 公開アプリ一覧のどちらかを表示中か */
+    isChatList: function () { return chatListActive || appsScreenActive; },
 
     /** 下部ナビの表示だけ更新する（サイドバーの開閉時） */
     refreshNav: renderNav,
@@ -408,6 +442,7 @@
     refreshCounts: function () {
       renderList();
       if (chatListActive) { renderChatList(); }
+      if (appsScreenActive) { renderAppsScreen(); }
       var app = findApp(currentAppId);
       if (app) { renderWorkbar(app); }
     },
@@ -433,6 +468,7 @@
         remoteApps = [];
         currentAppId = null;
         chatListActive = false;
+        appsScreenActive = false;
         global.AppShareFiles.clear();
       }
       renderList();
@@ -443,6 +479,7 @@
       remoteApps = (rows || []).map(toApp);
       renderList();
       if (chatListActive) { renderChatList(); }
+      if (appsScreenActive) { renderAppsScreen(); }
     },
 
     /** 既存5アプリ + 登録アプリ */

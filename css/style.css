@@ -3886,6 +3886,18 @@ body {
 .chatlist[hidden] { display: none; }
 .chatlist__list { display: grid; gap: 10px; margin-top: 12px; max-width: 640px; }
 .chatlist__list .app-item { margin: 0; background: var(--surface); }
+.chatlist__sub { margin-top: 24px; }
+.chatlist[hidden] { display: none; }
+
+/* 公開アプリ一覧：2列の四角いカード */
+.appsgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.appsgrid .app-item {
+  position: relative; margin: 0; min-height: 112px; padding: 14px 12px;
+  flex-direction: column; align-items: flex-start; gap: 10px;
+  background: var(--surface); border-radius: 12px;
+}
+.appsgrid .app-item__body { width: 100%; }
+.appsgrid .app-item__count { position: absolute; top: 10px; right: 10px; }
 
 .bottomnav { display: none; }
 
@@ -3894,8 +3906,10 @@ body {
 
   .layout { height: calc(100% - var(--header-h) - var(--bottomnav-h)); }
 
-  /* 下部ナビがあるため、ヘッダーの旧「メニュー」ボタンは隠す（サイドバーは下部ナビの「アプリ」で開く） */
+  /* 下部ナビがあるため、ヘッダーの旧「メニュー」ボタンは隠す */
   .header .header__nav-toggle { display: none; }
+  /* 左スライド式・左固定のアプリ一覧は使わない（下部ナビの「アプリ」で全画面一覧を開く） */
+  .sidebar, .scrim { display: none; }
 
   .bottomnav {
     position: fixed;
@@ -3947,15 +3961,4 @@ body {
 
   .toast-area { bottom: calc(max(16px, env(safe-area-inset-bottom)) + var(--bottomnav-h)); }
   .mascot { bottom: calc(max(12px, env(safe-area-inset-bottom)) + var(--bottomnav-h)); }
-}
-
-/* iPad縦向き（幅761〜1024px）：下部ナビの「アプリ」でサイドバーを開けるよう、引き出し式にする */
-@media (min-width: 761px) and (max-width: 1024px) and (orientation: portrait) and (pointer: coarse) {
-  .icon-button { display: flex; }
-  .sidebar {
-    position: absolute; top: 0; left: 0; bottom: 0; z-index: 20;
-    width: 300px; transform: translateX(-100%); transition: transform .22s ease;
-  }
-  .sidebar.is-open { transform: translateX(0); box-shadow: var(--shadow-pop); }
-  .scrim { position: absolute; inset: 0; z-index: 15; background: rgba(23, 33, 41, 0.34); }
 }

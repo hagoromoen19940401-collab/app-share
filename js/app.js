@@ -112,7 +112,7 @@
 
     Apps.setLoggedIn(!!session);
     Chat.onAuthChange();
-    dom.chatList.hidden = true;
+    hideScreens();
     dom.bottomNav.hidden = !session;
 
     if (session) {
@@ -189,16 +189,23 @@
   var PLACEHOLDER_APP     = 'このアプリについてのコメントを入力';
   var PLACEHOLDER_GENERAL = '全体への連絡・相談を入力';
 
-  /** チャット一覧を表示する（下部ナビの「チャット」）。チャットは非表示扱いにして既読処理を止める */
-  function showChatList() {
-    Apps.showChatList();
+  function hideScreens() {
+    dom.chatList.hidden = true;
+    dom.appsScreen.hidden = true;
+  }
+
+  /** チャット一覧 / 公開アプリ一覧を表示する（下部ナビ）。チャットは非表示扱いにして既読処理を止める */
+  function showListScreen(kind) {
+    if (kind === 'apps') { Apps.showAppsScreen(); } else { Apps.showChatList(); }
     Chat.setActive(false);
     dom.emptyApps.hidden = true;
     dom.workbar.hidden = true;
     dom.mainScroll.hidden = true;
     dom.composer.hidden = true;
-    dom.chatList.hidden = false;
-    dom.chatList.scrollTop = 0;
+    hideScreens();
+    var screen = kind === 'apps' ? dom.appsScreen : dom.chatList;
+    screen.hidden = false;
+    screen.scrollTop = 0;
     setSidebar(false);
     document.title = 'あぷりんく';
   }
@@ -207,7 +214,7 @@
     var previousId = Apps.getCurrentId();
     var app = Apps.select(appId);
     if (!app) { return; }
-    dom.chatList.hidden = true;
+    hideScreens();
 
     // アプリが0件の案内が出ていても、選んだ画面を表示する
     dom.emptyApps.hidden = true;
@@ -274,13 +281,13 @@
     dom.loginPrompt = document.getElementById('loginPrompt');
     dom.emptyApps   = document.getElementById('emptyApps');
     dom.chatList    = document.getElementById('chatList');
+    dom.appsScreen  = document.getElementById('appsScreen');
     dom.bottomNav   = document.getElementById('bottomNav');
     dom.bottomNav.addEventListener('click', function (event) {
       var button = event.target.closest('[data-nav]');
       if (!button || !Auth.isLoggedIn()) { return; }
       var key = button.getAttribute('data-nav');
-      if (key === 'chat') { showChatList(); }
-      else { setSidebar(!dom.sidebar.classList.contains('is-open')); }
+      showListScreen(key === 'apps' ? 'apps' : 'chat');
     });
     dom.emptyApps.addEventListener('click', function (event) {
       if (event.target.closest('[data-open-settings]')) { global.AppShareSettings.open(); }
@@ -303,6 +310,7 @@
       filesEl: document.getElementById('appFiles'),
       initialTab: initialTab,
       chatListEl: document.getElementById('chatList'),
+      appsScreenEl: document.getElementById('appsScreen'),
       navEl: document.getElementById('bottomNav'),
       onSelect: selectApp,
       // チャット一覧から選んだアプリは「チャット」タブで開く（全体チャットは常にチャット）
