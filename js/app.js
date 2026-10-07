@@ -61,8 +61,8 @@
    * 固定のアプリは持たないため、登録が0件のときは案内を出す。
    */
   function applyAppsState() {
-    // ホーム表示中は、アプリ一覧の再取得で画面を切り替えない
-    if (Apps.isHome() && !openGeneralNext) { return; }
+    // チャット一覧の表示中は、アプリ一覧の再取得で画面を切り替えない
+    if (Apps.isChatList() && !openGeneralNext) { return; }
 
     // 起動時・ログイン直後の1回だけ、前回のアプリではなく全体チャットを開く
     if (openGeneralNext && Apps.find(Apps.GENERAL_ID)) {
@@ -112,7 +112,7 @@
 
     Apps.setLoggedIn(!!session);
     Chat.onAuthChange();
-    dom.home.hidden = true;
+    dom.chatList.hidden = true;
     dom.bottomNav.hidden = !session;
 
     if (session) {
@@ -143,6 +143,7 @@
     dom.scrim.hidden = !open;
     dom.navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     dom.navToggle.setAttribute('aria-label', open ? 'アプリ一覧を閉じる' : 'アプリ一覧を開く');
+    Apps.refreshNav();
   }
 
   function initSidebar() {
@@ -188,16 +189,16 @@
   var PLACEHOLDER_APP     = 'このアプリについてのコメントを入力';
   var PLACEHOLDER_GENERAL = '全体への連絡・相談を入力';
 
-  /** ホームを表示する（最近使ったアプリ）。チャットは非表示扱いにして既読処理を止める */
-  function showHome() {
-    Apps.showHome();
+  /** チャット一覧を表示する（下部ナビの「チャット」）。チャットは非表示扱いにして既読処理を止める */
+  function showChatList() {
+    Apps.showChatList();
     Chat.setActive(false);
     dom.emptyApps.hidden = true;
     dom.workbar.hidden = true;
     dom.mainScroll.hidden = true;
     dom.composer.hidden = true;
-    dom.home.hidden = false;
-    dom.home.scrollTop = 0;
+    dom.chatList.hidden = false;
+    dom.chatList.scrollTop = 0;
     setSidebar(false);
     document.title = 'あぷりんく';
   }
@@ -206,7 +207,7 @@
     var previousId = Apps.getCurrentId();
     var app = Apps.select(appId);
     if (!app) { return; }
-    dom.home.hidden = true;
+    dom.chatList.hidden = true;
 
     // アプリが0件の案内が出ていても、選んだ画面を表示する
     dom.emptyApps.hidden = true;
@@ -272,14 +273,13 @@
     dom.workbar     = document.getElementById('workbar');
     dom.loginPrompt = document.getElementById('loginPrompt');
     dom.emptyApps   = document.getElementById('emptyApps');
-    dom.home        = document.getElementById('home');
+    dom.chatList    = document.getElementById('chatList');
     dom.bottomNav   = document.getElementById('bottomNav');
     dom.bottomNav.addEventListener('click', function (event) {
       var button = event.target.closest('[data-nav]');
       if (!button || !Auth.isLoggedIn()) { return; }
       var key = button.getAttribute('data-nav');
-      if (key === 'home') { showHome(); }
-      else if (key === 'chat') { selectApp(Apps.GENERAL_ID); }
+      if (key === 'chat') { showChatList(); }
       else { setSidebar(!dom.sidebar.classList.contains('is-open')); }
     });
     dom.emptyApps.addEventListener('click', function (event) {
@@ -302,11 +302,14 @@
       detailEl: document.getElementById('appDetail'),
       filesEl: document.getElementById('appFiles'),
       initialTab: initialTab,
-      homeEl: document.getElementById('home'),
+      chatListEl: document.getElementById('chatList'),
       navEl: document.getElementById('bottomNav'),
-      onHome: showHome,
-      // 利用者が選んだときだけ記録する（起動時の復元では記録しない）
-      onSelect: function (appId) { selectApp(appId); Apps.recordRecent(appId); },
+      onSelect: selectApp,
+      // チャット一覧から選んだアプリは「チャット」タブで開く（全体チャットは常にチャット）
+      onChatSelect: function (appId) {
+        selectApp(appId);
+        if (appId !== Apps.GENERAL_ID) { Apps.setTab('chat'); }
+      },
       onOpenApp: openApp,
       onTabChange: showTab,
       onRequireLogin: function () { Auth.open(); },
